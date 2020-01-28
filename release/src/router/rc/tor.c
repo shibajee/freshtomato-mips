@@ -16,7 +16,7 @@ void start_tor(void) {
 
 		if (nvram_match("tor_solve_only", "1")) {
 			/* dnsmasq uses this IP for nameserver to resolv .onion/.exit domains */
-			ip = nvram_safe_get("lan_ipaddr")
+			ip = nvram_safe_get("lan_ipaddr");
 		}
 		else {
 			if (nvram_match("tor_iface", "br0"))      { ip = nvram_safe_get("lan_ipaddr");  }
