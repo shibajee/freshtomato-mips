@@ -298,6 +298,9 @@ static void curl_setup()
 	if (curl_global_init(CURL_GLOBAL_ALL) || !(curl_handle = curl_easy_init()))
 		error("libcurl initialization failure.");
 
+#ifndef TCONFIG_AIO
+	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
+#endif
 	curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(curl_handle, CURLOPT_MAXREDIRS, 20);
 	curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, 10);
@@ -1675,7 +1678,6 @@ int main(int argc, char *argv[])
 
 	p = get_option_required("service");
 
-#ifdef TCONFIG_HTTPS
 	if (strcmp(p, "changeip") == 0) {
 		update_dua("dyndns", 1, "nic.changeip.com", "/nic/update", 1);
 	}
@@ -1742,74 +1744,6 @@ int main(int argc, char *argv[])
 	else if (strcmp(p, "zoneedit") == 0) {
 		update_zoneedit(1);
 	}
-#else
-	if (strcmp(p, "changeip") == 0) {
-		update_dua("dyndns", 0, "nic.changeip.com", "/nic/update", 1);
-	}
-	else if (strcmp(p, "cloudflare") == 0) {
-		update_cloudflare(0);
-	}
-	else if (strcmp(p, "dnsexit") == 0) {
-		update_dnsexit(0);
-	}
-	else if (strcmp(p, "dnshenet") == 0) {
-		update_dua(NULL, 0, "dyn.dns.he.net", "/nic/update", 0);
-	}
-	else if (strcmp(p, "dnsomatic") == 0) {
-		update_dua(NULL, 0, "updates.dnsomatic.com", "/nic/update", 0);
-	}
-	else if (strcmp(p, "dyndns") == 0) {
-		update_dua("dyndns", 0, "members.dyndns.org", "/nic/update", 1);
-	}
-	else if (strcmp(p, "dyndns-static") == 0) {
-		update_dua("statdns", 0, "members.dyndns.org", "/nic/update", 1);
-	}
-	else if (strcmp(p, "dyndns-custom") == 0) {
-		update_dua("custom", 0, "members.dyndns.org", "/nic/update", 1);
-	}
-	else if (strcmp(p, "dyns") == 0) {
-		update_dyns(0);
-	}
-	else if (strcmp(p, "easydns") == 0) {
-		update_dua(NULL, 0, "members.easydns.com", "/dyn/dyndns.php", 1);
-	}
-	else if (strcmp(p, "enom") == 0) {
-		update_enom(0);
-	}
-	else if (strcmp(p, "afraid") == 0) {
-		update_afraid(0);
-	}
-	else if (strcmp(p, "heipv6tb") == 0) {
-		update_dua("heipv6tb", 1, "ipv4.tunnelbroker.net", "/nic/update", 1);
-	}
-	else if (strcmp(p, "ieserver") == 0) {
-		update_ieserver(0);
-	}
-	else if (strcmp(p, "namecheap") == 0) {
-		update_namecheap(0);
-	}
-	else if (strcmp(p, "noip") == 0) {
-		update_dua(NULL, 0, "dynupdate.no-ip.com", "/nic/update", 1);
-	}
-	else if (strcmp(p, "opendns") == 0) {
-		update_dua(NULL, 0, "updates.opendns.com", "/nic/update", 0);
-	}
-	else if (strcmp(p, "ovh") == 0) {
-		update_dua("dyndns", 0, "www.ovh.com", "/nic/update", 1);
-	}
-	else if (strcmp(p, "pairdomains") == 0) {
-		update_dua(NULL, 0, "dynamic.pairdomains.com", "/nic/update", 1);
-	}
-	else if (strcmp(p, "pubyun") == 0) {
-		update_dua(NULL, 0, "members.3322.org", "/dyndns/update", 1);
-	}
-	else if (strcmp(p, "pubyun-static") == 0) {
-		update_dua("statdns", 0, "members.3322.org", "/dyndns/update", 1);
-	}
-	else if (strcmp(p, "zoneedit") == 0) {
-		update_zoneedit(0);
-	}
-#endif
 	else if ((strcmp(p, "wget") == 0) || (strcmp(p, "custom") == 0)) {
 		update_wget();
 	}

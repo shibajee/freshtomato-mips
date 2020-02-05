@@ -2038,19 +2038,18 @@ int start_firewall(void)
 	f_write_string("/proc/sys/net/ipv4/conf/default/rp_filter", "1", 0, 0);
 	f_write_string("/proc/sys/net/ipv4/conf/all/rp_filter", "0", 0, 0);
 
+	/* Remote management */
 	remotemanage = 0;
-	if (gateway_mode) {
-		/* Remote management */
-		if (nvram_match("remote_management", "1") && nvram_invmatch("http_wanport", "") && nvram_invmatch("http_wanport", "0"))
-			remotemanage = 1;
 
-		if (nvram_match("remote_mgt_https", "1")) {
-			web_lanport = nvram_get_int("https_lanport");
-			if (web_lanport <= 0) web_lanport = 443;
-		} else {
-			web_lanport = nvram_get_int("http_lanport");
-			if (web_lanport <= 0) web_lanport = 80;
-		}
+	if (nvram_match("remote_management", "1") && nvram_invmatch("http_wanport", "") && nvram_invmatch("http_wanport", "0"))
+		remotemanage = 1;
+
+	if (nvram_match("remote_mgt_https", "1")) {
+		web_lanport = nvram_get_int("https_lanport");
+		if (web_lanport <= 0) web_lanport = 443;
+	} else {
+		web_lanport = nvram_get_int("http_lanport");
+		if (web_lanport <= 0) web_lanport = 80;
 	}
 
 	if ((ipt_file = fopen(ipt_fname, "w")) == NULL) {
@@ -2110,14 +2109,14 @@ int start_firewall(void)
 
 	notice_set("iptables", "");
 	if (_eval(iptrestore_argv, ">/var/notice/iptables", 0, NULL) == 0) {
-		led(LED_DIAG, 0);
+		led(LED_DIAG, LED_OFF);
 		notice_set("iptables", "");
 	}
 	else {
 		sprintf(s, "%s.error", ipt_fname);
 		rename(ipt_fname, s);
 		syslog(LOG_CRIT, "Error while loading rules. See %s file.", s);
-		led(LED_DIAG, 1);
+		led(LED_DIAG, LED_ON);
 
 		/*
 
@@ -2144,7 +2143,7 @@ int start_firewall(void)
 			sprintf(s, "%s.error", ip6t_fname);
 			rename(ip6t_fname, s);
 			syslog(LOG_CRIT, "Error while loading rules. See %s file.", s);
-			led(LED_DIAG, 1);
+			led(LED_DIAG, LED_ON);
 		}
 	}
 	else {
@@ -2207,7 +2206,7 @@ int start_firewall(void)
 
 int stop_firewall(void)
 {
-	led(LED_DMZ, 0);
+	led(LED_DMZ, LED_OFF);
 	return 0;
 }
 
