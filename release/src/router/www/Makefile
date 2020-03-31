@@ -12,7 +12,6 @@ install:
 	cp *.gif *.png *.ico *.html *.php robots.txt $(INSTALLDIR)/www
 
 # Squish some of the files by trimming whitespace...
-
 	for F in $(wildcard *.js *.jsx); do \
 		sed '/^\/\*\s*$$/,/\*\//! { s/^\s\+//; s/\s\+$$//; /^\/\/ --\+\s*/d; /^$$/d }' < $$F > $(INSTALLDIR)/www/$$F; \
 	done
@@ -21,14 +20,9 @@ install:
 		sed '/^\/\*\s*$$/,/\*\//! { s/\s\+/ /g; s/^\s\+//; s/\s\+$$//; /^$$/d }' < $$F > $(INSTALLDIR)/www/$$F; \
 	done
 
-# Remove "debug.js" references, convert color.css, remove comments
-# in between REMOVE-BEGIN and REMOVE-END, and compress whitespace
-
+# remove comments in between REMOVE-BEGIN and REMOVE-END, and compress whitespace
 	for F in $(wildcard *.asp *.svg); do \
 		sed	-e "/REMOVE-BEGIN/,/REMOVE-END/d" \
-			-e "s,<script[^>]\+debug\.js[^>]\+></script>,," \
-			-e "s,<link[^>]\+href=\"color\.css\">,<% css(); %>," \
-			-e "s,color\.css,<% nv('web_css'); %>\.css," \
 			-e "s,<!-- / / / -->,," \
 			-e "s,\x0d,," \
 			-e "s,^\s\+,," \
@@ -37,21 +31,7 @@ install:
 			-e "/^<!--$$/,/^-->$$/! { s,^\s\+, , }" $$F > $(INSTALLDIR)/www/$$F; \
 	done
 
-# Only include Linux 2.6 options if building for Linux 2.6.
-ifneq ($(CONFIG_LINUX26),y)
-	cd $(INSTALLDIR)/www && \
-	for F in $(wildcard *.asp *.js); do \
-		sed -i $$F -e "/LINUX26-BEGIN/,/LINUX26-END/d"; \
-	done
-# But remove some K24 options if building for Linux 2.6.
-else
-	cd $(INSTALLDIR)/www && \
-	for F in $(wildcard *.asp *.js); do \
-		sed -i $$F -e "/LINUX24-BEGIN/,/LINUX24-END/d"; \
-	done
-endif
-
-# Only include  MultiWAN options if MULTIWAN is configured in.
+# Only include MultiWAN options if MULTIWAN is configured in.
 ifneq ($(TCONFIG_MULTIWAN),y)
 	cd $(INSTALLDIR)/www && \
 	for F in $(wildcard *.asp *.js *.jsx); do \
@@ -83,13 +63,19 @@ ifneq ($(TCONFIG_CIFS),y)
 	sed -i $(INSTALLDIR)/www/nas-media.asp -e "/CIFS-BEGIN/,/CIFS-END/d"
 endif
 
-# Only include the JFFS pages if JFFS is configured in.
+# Only include the JFFS pages if JFFS is configured in. Distinguish JFFS2 and BRCMNAND.
 ifneq ($(TCONFIG_JFFS2),y)
 	rm -f $(INSTALLDIR)/www/admin-jffs2.asp
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/JFFS2-BEGIN/,/JFFS2-END/d"
 	sed -i $(INSTALLDIR)/www/admin-bwm.asp -e "/JFFS2-BEGIN/,/JFFS2-END/d"
 	sed -i $(INSTALLDIR)/www/admin-upgrade.asp -e "/JFFS2-BEGIN/,/JFFS2-END/d"
 	sed -i $(INSTALLDIR)/www/nas-media.asp -e "/JFFS2-BEGIN/,/JFFS2-END/d"
+else
+ifeq ($(TCONFIG_BRCM_NAND_JFFS2),y)
+	sed -i $(INSTALLDIR)/www/admin-jffs2.asp -e "/JFFS2-BEGIN/,/JFFS2-END/d"
+else
+	sed -i $(INSTALLDIR)/www/admin-jffs2.asp -e "/JFFS2NAND-BEGIN/,/JFFS2NAND-END/d"
+endif
 endif
 
 # Only include the Zebra options if Zebra is configured in.
@@ -106,23 +92,25 @@ endif
 ifneq ($(TCONFIG_NTFS),y)
 	sed -i $(INSTALLDIR)/www/nas-usb.asp -e "/NTFS-BEGIN/,/NTFS-END/d"
 endif
+
 # Only include the FTP pages if FTP Server is configured in.
 ifneq ($(TCONFIG_FTP),y)
 	rm -f $(INSTALLDIR)/www/nas-ftp.asp
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/FTP-BEGIN/,/FTP-END/d"
 endif
+
 # Only include the Samba pages if Samba is configured in.
 ifneq ($(TCONFIG_SAMBASRV),y)
 	rm -f $(INSTALLDIR)/www/nas-samba.asp
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/SAMBA-BEGIN/,/SAMBA-END/d"
 endif
+
 # Only include the Media Server pages if Media Server is configured in.
 ifneq ($(TCONFIG_MEDIA_SERVER),y)
 	rm -f $(INSTALLDIR)/www/nas-media.asp
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/MEDIA-SRV-BEGIN/,/MEDIA-SRV-END/d"
 endif
 
-# Victek for RAF verion
 # Only include Captive Portal menu option and pages when configured.
 ifneq ($(TCONFIG_NOCAT),y)
 	rm -f $(INSTALLDIR)/www/splashd.asp
@@ -202,6 +190,7 @@ ifneq ($(TCONFIG_USB),y)
 	sed -i $(INSTALLDIR)/www/admin-buttons.asp -e "/USB-BEGIN/,/USB-END/d"
 	sed -i $(INSTALLDIR)/www/admin-access.asp -e "/USB-BEGIN/,/USB-END/d"
 	sed -i $(INSTALLDIR)/www/about.asp -e "/USB-BEGIN/,/USB-END/d"
+	sed -i $(INSTALLDIR)/www/basic-network.asp -e "/USB-BEGIN/,/USB-END/d"
 endif
 
 # Only include the CTF configuration if CTF is configured in.
@@ -217,12 +206,7 @@ ifeq ($(CONFIG_BCMWL6),y)
 	sed -i $(INSTALLDIR)/www/advanced-misc.asp -e "/BCMNAT-BEGIN/,/BCMNAT-END/d"
 endif
 
-	cd $(INSTALLDIR)/www && \
-	for F in $(wildcard *.asp); do \
-		sed -e "s,<div class=\"title\">Tomato</div>,<div class=\"title\">FreshTomato</div>," $$F > $$F.tmp; \
-		mv $$F.tmp $$F; \
-	done
-
+# Add "beta" tag if needed
 ifeq ($(TOMATO_EXPERIMENTAL),1)
 	cd $(INSTALLDIR)/www && \
 	for F in $(wildcard *.asp); do \
@@ -230,24 +214,6 @@ ifeq ($(TOMATO_EXPERIMENTAL),1)
 		mv $$F.tmp $$F; \
 	done
 endif
-
-	cd $(INSTALLDIR)/www && \
-	for F in $(wildcard *.asp); do \
-		sed -e "s,<div class=\"version\">Version <% version(); %></div>,<div class=\"version\">Version <% version(); %> on <% nv(\"t_model_name\"); %></div>," $$F > $$F.tmp; \
-		mv $$F.tmp $$F; \
-	done
-
-# Remove from html obsolete stuff
-	cd $(INSTALLDIR)/www && \
-	for F in $(wildcard *.asp); do \
-		sed     -e "s,<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">,<!DOCTYPE html>," \
-			-e "s,<script type=\"text/javascript\",<script," \
-			-e "s,<style type=\"text/css\">,<style>," \
-			-e "s,<html>,<html lang=\"en-GB\">," \
-			-e "s,<form action=\"\">,<form>," \
-			-e "s,<table id=\"container\" cellspacing=\"0\">,<table id=\"container\">," $$F > $$F.tmp; \
-		mv $$F.tmp $$F; \
-	done
 
 # Only include the vpn pages if OpenVPN is compiled in
 # Remove AES ciphers from the GUI if openssl doesn't have an AES directory
@@ -370,6 +336,22 @@ ifeq ($(TCONFIG_OPTIMIZE_SIZE_MORE),y)
 	sed -i $(INSTALLDIR)/www/admin-access.asp -e "/SIZEOPTMORE-BEGIN/,/SIZEOPTMORE-END/d"
 endif
 
+# Only include Advanced Themes stuff if it is required
+ifneq ($(TCONFIG_ADVTHEMES),y)
+	rm -f $(INSTALLDIR)/www/resize-charts.js
+	rm -f $(INSTALLDIR)/www/at.css
+	rm -f $(INSTALLDIR)/www/at-blue.css
+	rm -f $(INSTALLDIR)/www/at-dark.css
+	rm -f $(INSTALLDIR)/www/at-green.css
+	rm -f $(INSTALLDIR)/www/at-red.css
+	sed -i $(INSTALLDIR)/www/admin-access.asp -e "/ADVTHEMES-BEGIN/,/ADVTHEMES-END/d"
+	sed -i $(INSTALLDIR)/www/bwm-24.asp -e "/ADVTHEMES-BEGIN/,/ADVTHEMES-END/d"
+	sed -i $(INSTALLDIR)/www/bwm-realtime.asp -e "/ADVTHEMES-BEGIN/,/ADVTHEMES-END/d"
+	sed -i $(INSTALLDIR)/www/ipt-24.asp -e "/ADVTHEMES-BEGIN/,/ADVTHEMES-END/d"
+	sed -i $(INSTALLDIR)/www/ipt-realtime.asp -e "/ADVTHEMES-BEGIN/,/ADVTHEMES-END/d"
+	sed -i $(INSTALLDIR)/www/bwm-graph.svg -e "/ADVTHEMES-BEGIN/,/ADVTHEMES-END/d"
+endif
+
 # Clean-up compiler directives
 	cd $(INSTALLDIR)/www && \
 	for F in $(wildcard *.asp *.js *.jsx *.html); do \
@@ -385,6 +367,7 @@ endif
 		-e "/FTP-BEGIN/d"	-e "/FTP-END/d" \
 		-e "/MEDIA-SRV-BEGIN/d"	-e "/MEDIA-SRV-END/d" \
 		-e "/JFFS2-BEGIN/d"	-e "/JFFS2-END/d" \
+		-e "/JFFS2NAND-BEGIN/d"	-e "/JFFS2NAND-END/d" \
 		-e "/CIFS-BEGIN/d"	-e "/CIFS-END/d" \
 		-e "/ZEBRA-BEGIN/d"	-e "/ZEBRA-END/d" \
 		-e "/EMF-BEGIN/d"	-e "/EMF-END/d" \
@@ -417,16 +400,9 @@ endif
 		-e "/OPTSIZE-BEGIN/d"	-e "/OPTSIZE-END/d" \
 		-e "/SIZEOPTMORE-BEGIN/d" -e "/SIZEOPTMORE-END/d" \
 		-e "/IPERF-BEGIN/d"	-e "/IPERF-END/d" \
+		-e "/ADVTHEMES-BEGIN/d"	-e "/ADVTHEMES-END/d" \
 		|| true; \
 	done
-
-# Make sure old and debugging crap is gone
-	@rm -f $(INSTALLDIR)/www/debug.js
-	@rm -f $(INSTALLDIR)/www/*-x.*
-	@rm -f $(INSTALLDIR)/www/*-old.*
-	@rm -f $(INSTALLDIR)/www/color.css
-
-	chmod 0644 $(INSTALLDIR)/www/*
 
 # Remove C-style comments from java, asp and css files. All "control" comments have been processed by now.
 	for F in $(wildcard *.js *.jsx *.asp *.css); do \
@@ -450,3 +426,5 @@ endif
 	for F in $(wildcard *.css ); do \
 		[ -f $(INSTALLDIR)/www/$$F ] && $(TOP)/www/tools/bin/uglifycss $$F --output $$F || true; \
 	done
+
+	chmod 0644 $(INSTALLDIR)/www/*

@@ -33,6 +33,30 @@ define unpatch_files
  done
 endef
 
+define CMAKE_CrossOptions
+ ( \
+  echo "SET(CMAKE_CROSSCOMPILING \"TRUE\")" >>$(1); \
+  echo "SET(TOP $(TOP))" >>$(1); \
+  echo "SET(CMAKE_SYSTEM_NAME Linux)" >>$(1); \
+  echo "SET(CMAKE_SYSTEM_VERSION $(LINUX_KERNEL))" >>$(1); \
+  echo "SET(CMAKE_SYSTEM $(PLATFORM))" >>$(1); \
+  echo "SET(CMAKE_SYSTEM_PROCESSOR $(ARCH))" >>$(1); \
+  echo "SET(CMAKE_C_COMPILER $(CC))" >>$(1); \
+  echo "SET(CMAKE_CXX_COMPILER $(CXX))" >>$(1); \
+  echo "SET(CMAKE_AR $(AR))" >>$(1); \
+  echo "SET(CMAKE_LINKER $(LD))" >>$(1); \
+  echo "SET(CMAKE_NM $(NM))" >>$(1); \
+  echo "SET(CMAKE_OBJCOPY $(OBJCOPY))" >>$(1); \
+  echo "SET(CMAKE_OBJDUMP $(OBJDUMP))" >>$(1); \
+  echo "SET(CMAKE_RANLIB $(RANLIB))" >>$(1); \
+  echo "SET(CMAKE_STRIP $(STRIP))" >>$(1); \
+  echo "SET(CMAKE_FIND_ROOT_PATH $(TOOLCHAIN))" >>$(1); \
+  echo "SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >>$(1); \
+  echo "SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >>$(1); \
+  echo "SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >>$(1); \
+ )
+endef
+
 
 #
 #
@@ -185,6 +209,7 @@ export CFLAG_OPTIMIZE = -Os
 endif
 
 obj-$(NEED_SAMBA3) += samba3
+obj-$(NEED_SAMBA3) += wsdd2
 obj-$(TCONFIG_NTFS) += ntfs-3g
 obj-$(TCONFIG_EBTABLES) += ebtables
 obj-$(TCONFIG_IPV6) += dhcpv6
@@ -561,9 +586,9 @@ ifneq ($(TCONFIG_USB_EXTRAS),y)
 	@rm -rf $(TARGETDIR)/lib/modules/*/kernel/drivers/block || true
 endif
 	$(if $(TCONFIG_CIFS),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/cifs.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(TCONFIG_JFFS2),$(if $(TCONFIG_JFFSV1),@mv,@cp -f),@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/jffs2.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(TCONFIG_JFFS2),$(if $(TCONFIG_JFFSV1),@mv,@cp -f),@mv) $(TARGETDIR)/lib/modules/*/kernel/lib/zlib_*.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(TCONFIG_JFFS2),$(if $(TCONFIG_JFFSV1),@cp -f,@mv),@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/jffs.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(or $(TCONFIG_BRCM_NAND_JFFS2),$(TCONFIG_JFFS2)),$(if $(TCONFIG_JFFSV1),@mv,@cp -f),@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/jffs2.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(or $(TCONFIG_BRCM_NAND_JFFS2),$(TCONFIG_JFFS2)),$(if $(TCONFIG_JFFSV1),@mv,@cp -f),@mv) $(TARGETDIR)/lib/modules/*/kernel/lib/zlib_*.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(or $(TCONFIG_BRCM_NAND_JFFS2),$(TCONFIG_JFFS2)),$(if $(TCONFIG_JFFSV1),@cp -f,@mv),@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/jffs.*o $(PLATFORMDIR)/extras/ || true
 	[ ! -f $(TARGETDIR)/lib/modules/*/kernel/lib/* ] && rm -rf $(TARGETDIR)/lib/modules/*/kernel/lib || true
 	$(if $(TCONFIG_L7),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/net/ipv4/netfilter/ipt_layer7.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(TCONFIG_L7),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/net/netfilter/xt_layer7.*o $(PLATFORMDIR)/extras/ || true
@@ -696,11 +721,11 @@ oldconfig oldconf: koldconf roldconf dependconf bboldconf
 
 busybox: dummy
 	@$(SEP)
-	@$(MAKE) -C busybox EXTRA_CFLAGS="-fPIC $(EXTRACFLAGS) $(if $(TCONFIG_OPENSSL11),-DOPENSSL11,)" $(PARALLEL_BUILD)
+	@$(MAKE) -C busybox EXTRA_CFLAGS="-fPIC $(EXTRACFLAGS)" $(PARALLEL_BUILD)
 
 busybox-install:
 	rm -rf $(INSTALLDIR)/busybox
-	$(MAKE) -C busybox install EXTRA_CFLAGS="-fPIC $(EXTRACFLAGS) $(if $(TCONFIG_OPENSSL11),-DOPENSSL11,)" CONFIG_PREFIX=$(INSTALLDIR)/busybox
+	$(MAKE) -C busybox install EXTRA_CFLAGS="-fPIC $(EXTRACFLAGS)" CONFIG_PREFIX=$(INSTALLDIR)/busybox
 
 busybox-clean:
 	-@$(MAKE) -C busybox distclean
@@ -737,7 +762,7 @@ cyassl-clean:
 
 ifeq ($(TCONFIG_KEYGEN),)
 ifeq ($(TCONFIG_OPENSSL11),y)
-OPENSSL_CIPHERS := no-camellia no-idea no-rc2 no-cast no-seed no-gost no-md4 no-mdc2 no-rmd160 no-cms no-engine no-ocsp no-srp no-ts no-afalgeng no-ocb no-ocsp \
+OPENSSL_CIPHERS := no-camellia no-idea no-rc2 no-cast no-seed no-gost no-md4 no-mdc2 no-rmd160 no-cms no-engine no-ocsp no-srp no-ts no-afalgeng no-ocb \
                    no-tests no-unit-test no-ui-console no-whirlpool no-blake2 no-cmac no-multiblock no-nextprotoneg no-comp no-ct no-scrypt no-sctp no-siphash no-ubsan \
                    no-rc5 no-rdrand no-capieng no-rfc3779 no-hw no-zlib no-sse2 no-ssl-trace no-dtls1 no-psk no-md2 no-devcryptoeng no-dgram no-dtls
 else
@@ -837,6 +862,7 @@ openssl-1.1-install:
 		$(STRIP) $(INSTALLDIR)/openssl-1.1/usr/sbin/openssl11 ; \
 		chmod 0500 $(INSTALLDIR)/openssl-1.1/usr/sbin/openssl11 ; \
 		install -D -m 0500 httpd/gencert.sh $(INSTALLDIR)/openssl-1.1/usr/sbin/gencert.sh ; \
+		cd $(INSTALLDIR)/openssl-1.1/usr/sbin && ln -sf openssl11 openssl ; \
 	fi
 	@true
 
@@ -867,6 +893,9 @@ bridge-clean:
 	-@$(MAKE) -C bridge clean
 	@rm -f bridge/Makefile
 
+DNSSEC_BACKEND :=
+DNSSEC_OPENSSL :=
+DNSSEC_NETTLE :=
 ifeq ($(TCONFIG_DNSSEC),y)
 ifneq ($(TCONFIG_HTTPS)$(TCONFIG_BBT)$(TCONFIG_NGINX)$(TCONFIG_OPENSSL11),)
 DNSSEC_BACKEND := $(OPENSSLDIR)
@@ -875,10 +904,6 @@ else
 DNSSEC_BACKEND := nettle
 DNSSEC_NETTLE := y
 endif
-else
-DNSSEC_BACKEND :=
-DNSSEC_OPENSSL :=
-DNSSEC_NETTLE :=
 endif
 
 dnsmasq: $(DNSSEC_BACKEND)
@@ -886,7 +911,7 @@ dnsmasq: $(DNSSEC_BACKEND)
 	$(call patch_files,dnsmasq)
 	$(MAKE) -C dnsmasq $(PARALLEL_BUILD) \
 	CFLAGS="-Os -ffunction-sections -fdata-sections $(EXTRACFLAGS) $(OPTSIZE_FLAG)" \
-	COPTS="-DNO_INOTIFY -DHAVE_BROKEN_RTC -DHAVE_TOMATO -DNO_DUMPFILE -DNO_ID -DNO_GMP -DNO_TFTP -DNO_SCRIPT $(if $(TCONFIG_OPTIMIZE_SIZE_MORE),-DNO_LOOP -DNO_AUTH,) -DUSE_IPSET \
+	COPTS="-DNO_INOTIFY -DHAVE_BROKEN_RTC -DHAVE_TOMATO -DNO_DUMPFILE -DNO_ID -DNO_GMP -DNO_SCRIPT $(if $(TCONFIG_OPTIMIZE_SIZE_MORE),-DNO_TFTP -DNO_LOOP -DNO_AUTH,) -DUSE_IPSET \
 		$(if $(DNSSEC_OPENSSL),-I$(TOP)/$(OPENSSLDIR)/include -DHAVE_DNSSEC,) \
 		$(if $(DNSSEC_NETTLE),-I$(TOP)/nettle/include -I$(TOP)/gmp -DHAVE_DNSSEC -DHAVE_DNSSEC_STATIC -DNO_GOST,) \
 		$(if $(TCONFIG_IPV6),-DUSE_IPV6,-DNO_IPV6)" \
@@ -906,7 +931,7 @@ dnsmasq-clean:
 
 nettle/stamp-h1: gmp
 	$(call patch_files,nettle)
-	@cd nettle && \
+	cd nettle && \
 	CPPFLAGS="-I$(TOP)/gmp" \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
 	LDFLAGS="-L$(TOP)/gmp/.libs -ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
@@ -925,15 +950,15 @@ nettle-clean:
 	$(call unpatch_files,nettle)
 
 gmp/stamp-h1:
-	@cd gmp && autoreconf -fvi && CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) \
+	$(call patch_files,gmp)
+	cd gmp && autoreconf -fsi && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	$(CONFIGURE)
-	@touch gmp/stamp-h1
+	@touch $@
 
 gmp: gmp/stamp-h1
 	@$(SEP)
-	$(call patch_files,gmp)
 	@$(MAKE) -C gmp $(PARALLEL_BUILD)
 
 gmp-clean:
@@ -1146,6 +1171,19 @@ dhcpv6-install:
 dhcpv6-clean:
 	-@$(MAKE) -C dhcpv6 clean
 	@rm -f dhcpv6/Makefile dhcpv6/stamp-h1
+
+wsdd2: shared
+	$(call patch_files,wsdd2)
+	@$(SEP)
+	@$(MAKE) CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -DTOMATO -I$(TOP)/shared" LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" -C $@
+
+wsdd2-install:
+	install -D wsdd2/wsdd2 $(INSTALLDIR)/wsdd2/usr/sbin/wsdd2
+	$(STRIP) $(INSTALLDIR)/wsdd2/usr/sbin/wsdd2
+
+wsdd2-clean:
+	@$(MAKE) -C wsdd2 clean
+	$(call unpatch_files,wsdd2)
 
 p910nd:
 
@@ -1690,22 +1728,23 @@ ebtables-clean:
 	rm -f ebtables/stamp-h1
 	$(call unpatch_files,ebtables)
 
-#Roadkill
 spawn-fcgi/stamp-h1:
-	cd spawn-fcgi && autoreconf && CC=$(CC) \
+	$(call patch_files,spawn-fcgi)
+	cd spawn-fcgi && autoreconf -fsi && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	ac_cv_func_malloc_0_nonnull=yes \
 	$(CONFIGURE) --prefix=/usr
-	touch spawn-fcgi/stamp-h1
+	@touch $@
 
 spawn-fcgi: spawn-fcgi/stamp-h1
 	@$(SEP)
-	@$(MAKE) -C spawn-fcgi $(PARALLEL_BUILD)
+	@$(MAKE) -C spawn-fcgi
 
 spawn-fcgi-clean:
 	-@$(MAKE) -C spawn-fcgi clean
 	rm -f spawn-fcgi/stamp-h1
+	$(call unpatch_files,spawn-fcgi)
 
 spawn-fcgi-install:
 	install -d $(INSTALLDIR)/spawn-fcgi/usr/bin
@@ -1780,15 +1819,15 @@ pcre: pcre/stamp-h1
 	@$(MAKE) -C pcre
 
 pcre-install:
-	install -D pcre/.libs/libpcre.so.1 $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.10
-	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.10
+	install -D pcre/.libs/libpcre.so.1 $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.12
+	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.12
 	cd $(INSTALLDIR)/pcre/usr/lib/ && \
-		ln -sf libpcre.so.1.2.10 libpcre.so.1
+		ln -sf libpcre.so.1.2.12 libpcre.so.1
 #unused at the moment - shibby
-#	install -D pcre/.libs/libpcreposix.so.0.0.6 $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.6
-#	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.6
+#	install -D pcre/.libs/libpcreposix.so.0.0.7 $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.7
+#	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.7
 #	cd $(INSTALLDIR)/pcre/usr/lib/ && \
-#		ln -sf libpcreposix.so.0.0.6 libpcreposix.so.0
+#		ln -sf libpcreposix.so.0.0.7 libpcreposix.so.0
 
 pcre-clean:
 	( if [ -f pcre/Makefile ]; then \
@@ -2026,6 +2065,7 @@ libncurses-install:
 	install -D -m 0644 libncurses/staged/usr/share/terminfo/v/vt100 $(INSTALLDIR)/libncurses/usr/share/terminfo/v
 	install -D -m 0644 libncurses/staged/usr/share/terminfo/v/vt220 $(INSTALLDIR)/libncurses/usr/share/terminfo/v
 	install -D -m 0644 libncurses/staged/usr/share/terminfo/x/xterm $(INSTALLDIR)/libncurses/usr/share/terminfo/x
+	install -D -m 0644 libncurses/staged/usr/share/terminfo/x/xterm-256color $(INSTALLDIR)/libncurses/usr/share/terminfo/x
 	cd $(INSTALLDIR)/libncurses/usr/lib && ln -sf ../share/terminfo terminfo
 	install libncurses/lib/libncurses.so.6.1 $(INSTALLDIR)/libncurses/usr/lib/libncurses.so.6
 	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libncurses.so.6
@@ -2504,6 +2544,7 @@ snmp-install:
 	$(STRIP) $(INSTALLDIR)/snmp/usr/sbin/snmpd
 
 apcupsd/stamp-h1:
+	$(call patch_files,apcupsd)
 	cd apcupsd && touch autoconf/variables.mak && \
 	$(MAKE) configure && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
@@ -2522,6 +2563,7 @@ apcupsd-clean:
 	-@$(MAKE) -C apcupsd clean
 	@rm -f apcupsd/stamp-h1
 	@rm -f apcupsd/config*
+	$(call unpatch_files,apcupsd)
 
 apcupsd-install:
 	$(MAKE) -C apcupsd DESTDIR=$(INSTALLDIR)/apcupsd install
@@ -2594,32 +2636,45 @@ libyaml-clean:
 	-$(MAKE) -C libyaml clean
 	@rm -rf libyaml/stamp-h1 libyaml/src/.deps libyaml/src/tests/.deps
 
-getdns/stamp-h1: $(OPENSSLDIR) libyaml
+getdns/build/Makefile:
+	@rm -rf getdns/build && mkdir -p getdns/build
 	$(call patch_files,getdns)
-	cd getdns && autoreconf -fsi && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/$(OPENSSLDIR)/include -I$(TOP)/libyaml/include -ffunction-sections -fdata-sections" \
-	LDFLAGS="-L$(TOP)/$(OPENSSLDIR) -L$(TOP)/libyaml/src/.libs -ffunction-sections -fdata-sections -Wl,--gc-sections" \
-	LIBS="-lcrypto -lssl -lyaml -lpthread" \
-	$(CONFIGURE) --prefix=/usr --sysconfdir=/etc --localstatedir=/var \
-		--enable-static --disable-shared --disable-gost \
-		--without-libidn --without-libidn2 \
-		--without-getdns_query --without-getdns_server_mon \
-		--without-libunbound --enable-stub-only --with-stubby \
-		--with-ssl=$(TOP)/$(OPENSSLDIR) --with-libyaml=$(TOP)/libyaml
-	@touch $@
+	cd getdns/build && \
+	$(call CMAKE_CrossOptions, crosscompiled.cmake) && \
+	cmake -DCMAKE_TOOLCHAIN_FILE=crosscompiled.cmake \
+		-DCMAKE_INSTALL_PREFIX:PATH=/usr \
+		-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_SKIP_RPATH=TRUE \
+		-DCMAKE_C_FLAGS="-Os -DNDEBUG -ffunction-sections -fdata-sections -std=c99 $(EXTRACFLAGS)" \
+		-DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections $(if $(TCONFIG_OPENSSL11),-lpthread,)" \
+		-DENABLE_STATIC=TRUE -DENABLE_SHARED=FALSE -DENABLE_GOST=FALSE \
+		-DBUILD_GETDNS_QUERY=FALSE \
+		-DBUILD_GETDNS_SERVER_MON=FALSE \
+		-DBUILD_STUBBY=TRUE -DENABLE_STUB_ONLY=TRUE \
+		-DBUILD_LIBEV=FALSE -DBUILD_LIBEVENT2=FALSE -DBUILD_LIBUV=FALSE \
+		-DBUILD_TESTING=FALSE \
+		-DOPENSSL_ROOT_DIR=$(TOP)/$(OPENSSLDIR) \
+		-DOPENSSL_INCLUDE_DIR=$(TOP)/$(OPENSSLDIR)/include \
+		-DOPENSSL_CRYPTO_LIBRARY=$(TOP)/$(OPENSSLDIR)/libcrypto.so \
+		-DOPENSSL_SSL_LIBRARY=$(TOP)/$(OPENSSLDIR)/libssl.so \
+		-DLIBYAML_DIR=$(TOP)/libyaml \
+		-DLIBYAML_INCLUDE_DIR=$(TOP)/libyaml/include \
+		-DLIBYAML_LIBRARY=$(TOP)/libyaml/src/.libs/libyaml.a \
+		-DCMAKE_DISABLE_FIND_PACKAGE_Libsystemd=TRUE \
+		-DUSE_LIBIDN2=FALSE \
+		-DSTRPTIME_WORKS_EXITCODE=0 \
+		-DTHREADS_PTHREAD_ARG=0 \
+		..
 
-getdns: getdns/stamp-h1
-	@$(SEP)
-	$(MAKE) -C getdns $(PARALLEL_BUILD)
+getdns: $(OPENSSLDIR) libyaml getdns/build/Makefile
+	$(MAKE) -C getdns/build
 
 getdns-install:
 	install -d $(INSTALLDIR)/getdns/usr/sbin
-	install -D getdns/src/stubby $(INSTALLDIR)/getdns/usr/sbin/stubby
+	install -D getdns/build/stubby/stubby $(INSTALLDIR)/getdns/usr/sbin/stubby
 	$(STRIP) -s $(INSTALLDIR)/getdns/usr/sbin/stubby
 
 getdns-clean:
-	-@$(MAKE) -C getdns clean
-	@rm -rf getdns/stamp-h1 getdns/src/.libs getdns/src/tools/.libs
+	@rm -rf getdns/build
 	$(call unpatch_files,getdns)
 
 tor/stamp-h1: $(OPENSSLDIR) zlib libevent

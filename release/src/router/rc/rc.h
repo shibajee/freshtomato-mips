@@ -163,7 +163,7 @@ extern void ipt_routerpolicy(void);
 
 /* network.c */
 extern void set_host_domain_name(void);
-extern void set_et_qos_mode(int sfd);
+extern void set_et_qos_mode(void);
 extern void start_lan(void);
 extern void stop_lan(void);
 extern void hotplug_net(void);
@@ -172,7 +172,9 @@ extern int radio_main(int argc, char *argv[]);
 extern int wldist_main(int argc, char *argv[]);
 extern void stop_wireless(void);
 extern void start_wireless(void);
+extern void restart_wireless(void);
 extern void start_wl(void);
+extern int disabled_wl(int idx, int unit, int subunit, void *param);
 extern void unload_wl(void);
 extern void load_wl(void);
 
@@ -204,12 +206,10 @@ extern void start_cron(void);
 extern void stop_cron(void);
 extern void start_adblock(int update);
 extern void stop_adblock(void);
-
 #ifdef TCONFIG_ZEBRA
 extern void start_zebra(void);
 extern void stop_zebra(void);
 #endif
-
 extern void start_upnp(void);
 extern void stop_upnp(void);
 extern void start_syslog(void);
@@ -236,16 +236,15 @@ extern void restart_service(const char *name);
 extern void start_services(void);
 extern void stop_services(void);
 /* !!TB - USB and NAS */
-
 #ifdef TCONFIG_USB
 extern void restart_nas_services(int stop, int start);
+extern void start_wsdd(void);
+extern void stop_wsdd(void);
 #else
 #define restart_nas_services(args...) do { } while(0)
 #endif
-
 extern void start_hotplug2();
 extern void stop_hotplug2(void);
-
 #ifdef TCONFIG_IPV6
 extern void start_ipv6_tunnel(void);
 extern void stop_ipv6_tunnel(void);

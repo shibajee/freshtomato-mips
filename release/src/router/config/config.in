@@ -38,6 +38,10 @@ config TCONFIG_CIFS
 	bool "CIFS Client"
 	default y
 
+config TCONFIG_BRCM_NAND_JFFS2
+	bool "JFFS Support on BRCM Nand Flash Partition"
+	default n
+
 config TCONFIG_JFFS2
 	bool "JFFS Support"
 	default y
@@ -226,6 +230,10 @@ config TCONFIG_KEYGEN
 
 config TCONFIG_TERMLIB
 	bool "Termlib based tools-shell.asp"
+	default n
+
+config TCONFIG_ADVTHEMES
+	bool "Advanced Themes similar to AdvancedTomato"
 	default n
 
 config TCONFIG_NVRAM_32K

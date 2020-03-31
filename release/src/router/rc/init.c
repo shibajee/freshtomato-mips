@@ -31,6 +31,64 @@
 
 #define SHELL "/bin/sh"
 
+int restore_defaults_fb = 0;
+
+static void
+restore_defaults(void)
+{
+	int restore_defaults = 0;
+#if 0 /* only for RT-N (or arm) branch and up! (stay as close as possible) */
+	struct sysinfo info;
+#endif /* only for RT-N (or arm) branch and up! (stay as close as possible) */
+
+	/* Restore defaults if told to or OS has changed */
+	if (!restore_defaults)
+		restore_defaults = !nvram_match("restore_defaults", "0");
+
+	if (restore_defaults)
+		fprintf(stderr, "\n## Restoring defaults... ##\n");
+
+	restore_defaults_fb = restore_defaults;
+
+	/* Restore defaults if necessary */
+	eval("nvram", "defaults", "--initcheck");
+
+	nvram_set("os_name", "linux");
+	nvram_set("os_version", tomato_version);
+	nvram_set("os_date", tomato_buildtime);
+
+#if 0 /* only for RT-N (or arm) branch and up! (stay as close as possible) */
+	/* Adjust et and wl thresh value after reset (for wifi-driver and et_linux.c) */
+	if (restore_defaults) {
+		memset(&info, 0, sizeof(struct sysinfo));
+		sysinfo(&info);
+		if (info.totalram <= (TOMATO_RAM_LOW_END * 1024)) { /* Router with less than 50 MB RAM */
+			/* Set to 512 as long as onboard memory <= 50 MB RAM */
+			nvram_set("wl_txq_thresh", "512");
+			nvram_set("et_txq_thresh", "512");
+#ifdef TCONFIG_USBAP
+			nvram_set("wl_rpcq_rxthresh", "512");
+#endif
+
+		}
+		else if (info.totalram <= (TOMATO_RAM_MID_END * 1024)) { /* Router with less than 100 MB RAM */
+			nvram_set("wl_txq_thresh", "1024");
+			nvram_set("et_txq_thresh", "1536");
+#ifdef TCONFIG_USBAP
+			nvram_set("wl_rpcq_rxthresh", "1024");
+#endif
+		}
+		else { /* Router with more than 100 MB RAM */
+			nvram_set("wl_txq_thresh", "1024");
+			nvram_set("et_txq_thresh", "3300");
+#ifdef TCONFIG_USBAP
+			nvram_set("wl_rpcq_rxthresh", "1024");
+#endif
+		}
+	}
+#endif /* only for RT-N (or arm) branch and up! (stay as close as possible) */
+}
+
 static int fatalsigs[] = {
 	SIGILL,
 	SIGABRT,
@@ -1310,6 +1368,19 @@ static void load_files_from_nvram(void)
 		run_nvscript(".autorun", NULL, 3);
 }
 
+static inline void set_kernel_panic(void)
+{
+	/* automatically reboot after a kernel panic */
+	f_write_string("/proc/sys/kernel/panic", "3", 0, 0);
+	f_write_string("/proc/sys/kernel/panic_on_oops", "3", 0, 0);
+}
+
+static inline void set_kernel_memory(void)
+{
+	f_write_string("/proc/sys/vm/overcommit_memory", "2", 0, 0); /* Linux kernel will not overcommit memory */
+	f_write_string("/proc/sys/vm/overcommit_ratio", "100", 0, 0); /* allow userspace to commit up to 100% of total memory */
+}
+
 #if defined(TCONFIG_USB)
 static inline void tune_min_free_kbytes(void)
 {
@@ -1471,11 +1542,7 @@ static void sysinit(void)
 		break;
 	}
 
-	load_wl();
-
-	config_loopback();
-
-	eval("nvram", "defaults", "--initcheck");
+	restore_defaults(); /* restore default if necessary */
 	init_nvram();
 
 	/* set the packet size */
@@ -1485,11 +1552,20 @@ static void sysinit(void)
 		eval("et", "robowr", "0x40", "0x05", nvram_safe_get("jumbo_frame_size"));
 	}
 
+	/* load after init_nvram */
+	//load_wl(); /* see function start_lan() */
+
+	//config_loopback(); /* see function start_lan() */
+
 	klogctl(8, NULL, nvram_get_int("console_loglevel"));
 
 #if defined(TCONFIG_USB)
 	tune_min_free_kbytes();
 #endif
+
+	set_kernel_panic(); /* Reboot automatically when the kernel panics and set waiting time */
+	set_kernel_memory(); /* set overcommit_memory and overcommit_ratio */
+
 	setup_conntrack();
 	set_host_domain_name();
 
@@ -1557,6 +1633,7 @@ int init_main(int argc, char *argv[])
 
 			stop_services();
 			stop_wan();
+			stop_arpbind();
 			stop_lan();
 			stop_vlan();
 			stop_syslog();
@@ -1574,6 +1651,9 @@ int init_main(int argc, char *argv[])
 			}
 
 			/* SIGHUP (RESTART) falls through */
+
+			//nvram_set("wireless_restart_req", "1"); /* restart wifi twice to make sure all is working ok! not needed right now M_ars */
+			syslog(LOG_INFO, "FreshTomato RESTART ...");
 
 		case SIGUSR2:		/* START */
 			start_syslog();
@@ -1605,7 +1685,23 @@ int init_main(int argc, char *argv[])
 			start_arpbind();
 			mwan_state_files();
 			start_services();
-			start_wl();
+
+			if (restore_defaults_fb /*|| nvram_match("wireless_restart_req", "1")*/) {
+				syslog(LOG_INFO, "%s: FreshTomato WiFi restarting ... (restore defaults)", nvram_safe_get("t_model_name"));
+				restore_defaults_fb = 0; /* reset */
+				//nvram_set("wireless_restart_req", "0");
+				restart_wireless();
+			}
+			else {
+				start_wl();
+#ifdef CONFIG_BCMWL5
+				/* If a virtual SSID is disabled, it requires two initialisations */
+				if (foreach_wif(1, NULL, disabled_wl)) {
+					syslog(LOG_INFO, "%s: FreshTomato WiFi restarting ... (virtual SSID disabled)", nvram_safe_get("t_model_name"));
+					restart_wireless();
+				}
+#endif
+			}
 			/*
 			 * last one as ssh telnet httpd samba etc can fail to load until start_wan_done
 			 */
