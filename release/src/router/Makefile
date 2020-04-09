@@ -224,7 +224,7 @@ obj-$(TCONFIG_MEDIA_SERVER) += libid3tag
 obj-$(TCONFIG_MEDIA_SERVER) += libvorbis
 obj-$(TCONFIG_MEDIA_SERVER) += minidlna
 MEDIA_SERVER_STATIC=y
-INSTALL_ZLIB := $(if $(or $(TCONFIG_BT)$(TCONFIG_TOR)$(TCONFIG_NGINX),$(if $(MEDIA_SERVER_STATIC),,y)),y,)
+INSTALL_ZLIB := $(if $(or $(TCONFIG_BBT)$(TCONFIG_TOR)$(TCONFIG_NGINX),$(if $(MEDIA_SERVER_STATIC),,y)),y,)
 
 #obj-y += libnfnetlink
 obj-y += miniupnpd
@@ -829,6 +829,11 @@ openssl-install:
 	install -D -m 0500 httpd/gencert.sh $(INSTALLDIR)/openssl/usr/sbin/gencert.sh
 
 openssl-1.1/stamp-h1:
+ifeq ($(TCONFIG_KEYGEN),y)
+	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch patches/openssl/104-reduce-size-for-smaller-targets.patch.tmp || true
+else
+	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch.tmp patches/openssl/104-reduce-size-for-smaller-targets.patch.patch || true
+endif
 	$(call patch_files,openssl-1.1)
 	cd openssl-1.1 && \
 	CC=$(CC:$(CROSS_COMPILE)%=%) \
