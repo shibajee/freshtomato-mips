@@ -298,7 +298,7 @@ static void curl_setup()
 	if (curl_global_init(CURL_GLOBAL_ALL) || !(curl_handle = curl_easy_init()))
 		error("libcurl initialization failure.");
 
-#ifndef TCONFIG_AIO
+#ifndef TCONFIG_STUBBY
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
 #endif
 	curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1);
@@ -1416,6 +1416,12 @@ but this is unimplemented here.
 */
 static int cloudflare_errorcheck(int code, const char *req, char *body)
 {
+	int n = 0, i = 0;
+	for (i = 0; i < strlen(body); ++i) {
+		if (body[i] != ' ') body[n++] = body[i];
+	}
+	body[n] = '\0';
+
 	if (code == 200)
 	{
 		if (strstr(body, "\"success\":true") != NULL)
