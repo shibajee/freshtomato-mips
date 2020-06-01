@@ -15,6 +15,7 @@ include common.mak
 #TOMATO_EXPERIMENTAL=0
 
 export PARALLEL_BUILD := -j`grep -c '^processor' /proc/cpuinfo`
+export HAVE_TOMATO := y
 
 
 define patch_files
@@ -797,7 +798,7 @@ endif
 	AR=$(AR:$(CROSS_COMPILE)%=%) \
 	NM=$(NM:$(CROSS_COMPILE)%=%) \
 	RANLIB=$(RANLIB:$(CROSS_COMPILE)%=%) \
-	./Configure $(HOSTCONFIG) -Os -DOPENSSL_NO_BUF_FREELISTS --openssldir=/etc \
+	./Configure $(HOSTCONFIG) -Os -DOPENSSL_NO_BUF_FREELISTS --openssldir=/etc/ssl \
 	-ffunction-sections -fdata-sections -Wl,--gc-sections -fomit-frame-pointer \
 	shared $(OPENSSL_CIPHERS) enable-rc5 no-ssl2 no-ssl3 no-err $(if $(TCONFIG_BBT),,no-rc4)
 ifeq ($(TCONFIG_KEYGEN),)
@@ -845,9 +846,9 @@ openssl-install:
 
 openssl-1.1/stamp-h1:
 ifeq ($(TCONFIG_KEYGEN),y)
-	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch patches/openssl/104-reduce-size-for-smaller-targets.patch.tmp || true
+	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch.tmp || true
 else
-	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch.tmp patches/openssl/104-reduce-size-for-smaller-targets.patch || true
+	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch.tmp patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch || true
 endif
 	$(call patch_files,openssl-1.1)
 	cd openssl-1.1 && \
@@ -855,8 +856,8 @@ endif
 	AR=$(AR:$(CROSS_COMPILE)%=%) \
 	NM=$(NM:$(CROSS_COMPILE)%=%) \
 	RANLIB=$(RANLIB:$(CROSS_COMPILE)%=%) \
-	./Configure $(HOSTCONFIG) --prefix=/usr --openssldir=/etc \
-	-Os -ffunction-sections -fdata-sections -Wl,--gc-sections -fomit-frame-pointer \
+	./Configure $(HOSTCONFIG) --prefix=/usr --openssldir=/etc/ssl \
+	$(CFLAG_OPTIMIZE) -ffunction-sections -fdata-sections -Wl,--gc-sections -fomit-frame-pointer \
 	shared $(OPENSSL_CIPHERS) no-ssl3 no-err no-async --api=1.0.0 \
 	no-aria no-sm2 no-sm3 no-sm4 $(if $(TCONFIG_BBT),,no-rc4) \
 	-DOPENSSL_PREFER_CHACHA_OVER_GCM
@@ -1009,13 +1010,13 @@ ppp-%:
 	$(MAKE) -C ppp/pppoecd $* INSTALLDIR=$(INSTALLDIR)/ppp $(if $(TCONFIG_IPV6),HAVE_INET6=y,)
 
 rp-pppoe/src/stamp-h1: rp-pppoe/src/Makefile.in
-	$(call patch_files,rp-pppoe)
-	cd rp-pppoe/src && CFLAGS="-g -Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
-	CPPFLAGS="-Os -ffunction-sections -fdata-sections" \
-	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
-	$(CONFIGURE) --prefix=/usr --enable-plugin=$(TOP)/pppd \
-	ac_cv_linux_kernel_pppoe=yes rpppoe_cv_pack_bitfields=rev
-	@touch rp-pppoe/src/stamp-h1
+	cd rp-pppoe/src && \
+		CFLAGS="-g -Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+		CPPFLAGS="-Os -ffunction-sections -fdata-sections" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
+		$(CONFIGURE) --prefix=/usr --enable-plugin=$(TOP)/pppd --disable-debugging  \
+			ac_cv_linux_kernel_pppoe=yes rpppoe_cv_pack_bitfields=rev ac_cv_path_PPPD=$(TOP)/pppd
+	@touch $@
 
 rp-pppoe: pppd rp-pppoe/src/stamp-h1
 	@$(SEP)
@@ -1038,11 +1039,11 @@ upnp: nvram shared iptables
 	@$(SEP)
 
 libnfnetlink/stamp-h1:
-	cd $(TOP)/libnfnetlink && CC=$(CC) STRIP=$(CROSS_COMPILE)strip \
+	cd libnfnetlink && \
 		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		$(CONFIGURE) --prefix=/usr --enable-shared --enable-static
-	touch libnfnetlink/stamp-h1
+	@touch $@
 
 libnfnetlink: libnfnetlink/stamp-h1
 	@$(SEP)
@@ -1094,10 +1095,10 @@ vsftpd-clean:
 
 ntfs-3g/Makefile:
 	$(call patch_files,ntfs-3g)
-	cd $(TOP)/ntfs-3g && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC $(OPTSIZE_FLAG)" \
-	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
-	$(CONFIGURE) --enable-shared=no --enable-static=no \
+	cd ntfs-3g && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC $(OPTSIZE_FLAG)" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
+		$(CONFIGURE) --enable-shared=no --enable-static=no \
 		--disable-library --disable-ldconfig --disable-mount-helper --with-fuse=internal \
 		--disable-ntfsprogs --disable-crypto --without-uuid \
 		--disable-posix-acls --disable-nfconv --disable-dependency-tracking
@@ -1165,7 +1166,7 @@ dhcpv6/stamp-h1:
 	ac_cv_func_setpgrp_void=yes \
 	$(CONFIGURE) --prefix= --with-localdbdir=/var
 	@$(MAKE) -C dhcpv6 clean
-	@touch dhcpv6/stamp-h1
+	@touch $@
 
 dhcpv6: dhcpv6/stamp-h1
 	@$(SEP)
@@ -1222,7 +1223,7 @@ pptpd/stamp-h1:
 	$(call patch_files,pptpd)
 	ln -sf ../../pppd/pppd/ pptpd/plugins/pppd
 	cd $(TOP)/pptpd && $(CONFIGURE) --prefix=$(INSTALLDIR)/pptpd --enable-bcrelay
-	touch pptpd/stamp-h1
+	touch $@
 
 pptpd: pptpd/stamp-h1
 	@$(SEP)
@@ -1269,7 +1270,7 @@ zebra/stamp-h1:
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	$(CONFIGURE) --sysconfdir=/etc --enable-netlink $(if $(TCONFIG_IPV6),--enable-ipv6,--disable-ipv6) --disable-ripngd \
 		--disable-ospfd --disable-ospf6d --disable-bgpd --disable-bgp-announce --disable-dependency-tracking
-	@touch zebra/stamp-h1
+	@touch $@
 
 zebra: zebra/stamp-h1
 	@$(SEP)
@@ -1373,7 +1374,7 @@ sqlite/stamp-h1:
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		$(CONFIGURE) --prefix=/usr --enable-shared --enable-static \
 		--disable-readline --disable-dynamic-extensions --enable-threadsafe
-	touch sqlite/stamp-h1
+	@touch $@
 
 sqlite: sqlite/stamp-h1
 	@$(SEP)
@@ -1429,7 +1430,7 @@ ffmpeg/stamp-h1: zlib
 		--extra-ldflags="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 		--extra-libs="-L$(TOP)/zlib -lz" \
 		--enable-zlib --disable-debug
-	touch ffmpeg/stamp-h1
+	@touch $@
 
 ffmpeg: ffmpeg/stamp-h1 zlib
 	@$(SEP)
@@ -1457,7 +1458,7 @@ libogg/stamp-h1:
 	CFLAGS="-Os $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
 	LDFLAGS="-fPIC -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	$(CONFIGURE) --enable-shared --enable-static --prefix=''
-	touch libogg/stamp-h1
+	@touch $@
 
 libogg: libogg/stamp-h1
 	@$(SEP)
@@ -1482,7 +1483,7 @@ flac/stamp-h1: libogg
 	$(CONFIGURE) --enable-shared --enable-static --prefix='' --disable-rpath \
 		--disable-doxygen-docs --disable-xmms-plugin --disable-cpplibs --disable-thorough-tests \
 		--without-libiconv-prefix --disable-altivec --disable-sse --disable-dependency-tracking
-	touch flac/stamp-h1
+	@touch $@
 
 flac: flac/stamp-h1 libogg
 	@$(SEP)
@@ -1500,12 +1501,12 @@ endif
 	@true
 
 jpeg/stamp-h1:
-	cd $(TOP)/jpeg && \
+	cd jpeg && \
 	CFLAGS="-Os $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
 	LDFLAGS="-fPIC -ffunction-sections -fdata-sections" \
 	AR2="touch" \
 	$(CONFIGURE) --enable-shared --enable-static --prefix=''
-	touch jpeg/stamp-h1
+	@touch $@
 
 jpeg: jpeg/stamp-h1
 	@$(SEP)
@@ -1539,7 +1540,7 @@ libexif/stamp-h1:
 	LDFLAGS="-fPIC -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	$(CONFIGURE) --enable-shared --enable-static --prefix='' \
 		--disable-docs --disable-rpath --disable-nls --without-libiconv-prefix --without-libintl-prefix
-	touch libexif/stamp-h1
+	@touch $@
 
 libexif: libexif/stamp-h1
 	@$(SEP)
@@ -1557,13 +1558,13 @@ endif
 	@true
 
 zlib/stamp-h1:
-	cd $(TOP)/zlib && \
+	cd zlib && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
 	CPPLAGS="-Os -Wall -fPIC -ffunction-sections -fdata-sections" \
 	LDFLAGS="-fPIC -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	LDSHAREDLIBC="$(EXTRALDFLAGS)" \
 	./configure --shared --prefix=/usr --libdir=/usr/lib
-	touch zlib/stamp-h1
+	@touch $@
 
 zlib: zlib/stamp-h1
 	@$(SEP)
@@ -1585,13 +1586,13 @@ endif
 
 libid3tag/stamp-h1: zlib
 	$(call patch_files,libid3tag)
-	cd $(TOP)/libid3tag && autoreconf -fsi && \
+	cd libid3tag && autoreconf -fsi && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
 	CPPFLAGS="-Os -Wall -ffunction-sections -fdata-sections -fPIC -I$(TOP)/zlib" \
 	LDFLAGS="-L$(TOP)/zlib -fPIC -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	$(CONFIGURE) --enable-shared --enable-static --prefix='' \
 		--disable-debugging --disable-profiling --disable-dependency-tracking
-	touch libid3tag/stamp-h1
+	@touch $@
 
 libid3tag: libid3tag/stamp-h1 zlib
 	@$(SEP)
@@ -1617,7 +1618,7 @@ libvorbis/stamp-h1: libogg
 	$(CONFIGURE) --enable-shared --enable-static --prefix='' --disable-oggtest \
 		--with-ogg-includes="$(TOP)/libogg/include" \
 		--with-ogg-libraries="$(TOP)/libogg/src/.libs"
-	touch libvorbis/stamp-h1
+	@touch $@
 
 libvorbis: libvorbis/stamp-h1
 	@$(SEP)
@@ -1656,7 +1657,6 @@ igmpproxy/src/Makefile: igmpproxy/src/Makefile.in
 igmpproxy: igmpproxy/src/Makefile
 	@$(SEP)
 	@$(MAKE) -C igmpproxy/src \
-	CC=$(CC) \
 	CFLAGS="-Os -g -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	$(PARALLEL_BUILD)
@@ -1671,7 +1671,8 @@ igmpproxy-clean:
 
 hotplug2:
 	@$(SEP)
-	$(MAKE) -C $@ CROSS_COMPILE=$(CROSS_COMPILE) CC=$(CC) EXTRACFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+	$(MAKE) -C $@ \
+		EXTRACFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections"
 
 hotplug2-install:
@@ -1713,7 +1714,7 @@ endif
 		CFLAGS="-Os $(EXTRACFLAGS) -DEBT_MIN_ALIGN=4 -ffunction-sections -fdata-sections -fPIC" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 		LOCKFILE="/var/lock/ebtables"
-	touch ebtables/stamp-h1
+	@touch $@
 
 ebtables: ebtables/stamp-h1
 	@$(SEP)
@@ -1769,7 +1770,7 @@ glib/stamp-h1:
 		glib_cv_byte_contents_gmutex="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" glib_cv_sys_pthread_getspecific_posix=yes \
 		glib_cv_sys_pthread_mutex_trylock_posix=yes glib_cv_sys_pthread_cond_timedwait_posix=yes ac_cv_func_getpwuid_r=yes ac_cv_func_getpwuid_r_posix=yes
 	@$(MAKE) -C glib
-	touch glib/stamp-h1
+	@touch $@
 
 glib: glib/stamp-h1
 	@$(SEP)
@@ -1785,7 +1786,8 @@ glib-install: glib
 
 nocat/stamp-h1: glib-install
 	@cd nocat && \
-	NC_CONF_PATH="/" CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+	NC_CONF_PATH="/" \
+	CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
 	$(CONFIGURE) --with-firewall=iptables --with-glib-prefix="$(INSTALLDIR)/glib/usr" --localstatedir=/var --sysconfdir=/etc
 	@$(MAKE) -C nocat
 
@@ -1794,7 +1796,7 @@ nocat/stamp-h1: glib-install
 	install -D glib/.libs/libglib-1.2.so.0.0.10 $(INSTALLDIR)/nocat/usr/lib/libglib-1.2.so.0.0.10
 	cd $(INSTALLDIR)/nocat/usr/lib && ln -s libglib-1.2.so.0.0.10 libglib-1.2.so.0
 	$(STRIP) $(INSTALLDIR)/nocat/usr/lib/libglib-1.2.so.0.0.10
-	touch nocat/stamp-h1
+	@touch $@
 
 nocat: nocat/stamp-h1
 	@$(SEP)
@@ -1811,15 +1813,13 @@ nocat-install:
 	install -D nocat/libexec/iptables/* $(INSTALLDIR)/nocat/usr/libexec/nocat
 	rm -rf $(INSTALLDIR)/glib/*
 
-#Tomato RAF
 pcre/stamp-h1:
 	$(call patch_files,pcre)
-	cd pcre && \
-	autoreconf -fsi && \
-	CC=$(CC) CXX=$(HOST)-g++ AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
-	$(CONFIGURE) --prefix=/usr --disable-dependency-tracking --enable-utf8 --enable-unicode-properties --disable-cpp
+	cd pcre && autoreconf -fsi && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+		$(CONFIGURE) --prefix=/usr --disable-dependency-tracking --enable-utf8 --enable-unicode-properties --disable-cpp
 	[ -d pcre/m4 ] || mkdir pcre/m4
-	@touch pcre/stamp-h1
+	@touch $@
 
 pcre: pcre/stamp-h1
 	@$(SEP)
@@ -1844,12 +1844,12 @@ pcre-clean:
 	$(call unpatch_files,pcre)
 
 libxml2/stamp-h1:
-	cd libxml2 && \
-	autoreconf -fsi && \
-	CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) CFLAGS="-Os -Wall -I$(TOP)/zlib $(EXTRACFLAGS)" LDFLAGS="-L$(TOP)/zlib" \
-	$(CONFIGURE) --prefix=/usr --without-python --enable-static --enable-shared \
-		--includedir="$(TOP)/libxml2/include" --without-lzma --disable-dependency-tracking
-	touch $@
+	cd libxml2 && autoreconf -fsi && \
+		CFLAGS="-Os -Wall -I$(TOP)/zlib $(EXTRACFLAGS)" \
+		LDFLAGS="-L$(TOP)/zlib" \
+		$(CONFIGURE) --prefix=/usr --without-python --enable-static --enable-shared \
+			--includedir="$(TOP)/libxml2/include" --without-lzma --disable-dependency-tracking
+	@touch $@
 
 libxml2: libxml2/stamp-h1
 	@$(SEP)
@@ -1870,9 +1870,10 @@ libxml2-clean:
 
 libpng/stamp-h1:
 	cd libpng && \
-	CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) CFLAGS="-Os -Wall -I$(TOP)/zlib $(EXTRACFLAGS)" LDFLAGS="-L$(TOP)/zlib" \
-	$(CONFIGURE) --prefix=/usr --enable-static --enable-shared
-	touch $@
+		CFLAGS="-Os -Wall -I$(TOP)/zlib $(EXTRACFLAGS)" \
+		LDFLAGS="-L$(TOP)/zlib" \
+		$(CONFIGURE) --prefix=/usr --enable-static --enable-shared
+	@touch $@
 
 libpng: libpng/stamp-h1
 	@$(SEP)
@@ -1897,11 +1898,10 @@ libpng-clean:
 	@rm -rf libpng/staged
 
 libatomic_ops/stamp-h1:
-	cd libatomic_ops && \
-	./autogen.sh && \
-	CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
-	$(CONFIGURE) --prefix=/usr --enable-static --enable-shared
-	touch $@
+	cd libatomic_ops && ./autogen.sh && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+		$(CONFIGURE) --prefix=/usr --enable-static --enable-shared
+	@touch $@
 
 libatomic_ops: libatomic_ops/stamp-h1
 	@$(SEP)
@@ -1917,7 +1917,7 @@ libatomic_ops-clean:
 
 php/stamp-h1: pcre zlib libiconv sqlite libxml2 libpng jpeg libcurl
 	$(call patch_files,php)
-	cd php && CC=$(CC) CXX=$(ARCH)-g++ AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) \
+	cd php && \
 	CFLAGS="-Os -Wall -I$(TOP)/zlib -I$(TOP)/libxml2/include/libxml -I$(TOP)/libxml2/include -I$(TOP)/pcre -I$(TOP)/libiconv/include \
 		-I$(TOP)/libpng/staged/usr/include -I$(TOP)/libcurl/staged/usr/include" \
 	LDFLAGS="-L$(TOP)/pcre/.libs -L$(TOP)/sqlite/.libs -L$(TOP)/zlib -L$(TOP)/libxml2/.libs -L$(TOP)/libiconv/lib/.libs \
@@ -1985,7 +1985,7 @@ php/stamp-h1: pcre zlib libiconv sqlite libxml2 libpng jpeg libcurl
 	--enable-zip \
 	--without-valgrind \
 	--with-libxml-dir="$(TOP)/libxml2/staged/usr"
-	@touch php/stamp-h1
+	@touch $@
 
 php: php/stamp-h1
 	@$(SEP)
@@ -2172,12 +2172,12 @@ mysql-install:
 	cp -arfpu $(TOP)/mysql/staged/usr/share/mysql/mysql_system_tables_data.sql .
 
 lzo/stamp-h1:
-	cd $(TOP)/lzo && \
+	cd lzo && \
 	CFLAGS="$(CFLAG_OPTIMIZE) -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
 	CPPFLAGS="$(CFLAG_OPTIMIZE) -Wall -ffunction-sections -fdata-sections -fPIC" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	$(CONFIGURE) --enable-shared --enable-static
-	touch lzo/stamp-h1
+	@touch $@
 
 lzo: lzo/stamp-h1
 	@$(SEP)
@@ -2206,7 +2206,7 @@ openvpn/Makefile:
 	$(CONFIGURE) --prefix=/usr --bindir=/usr/sbin --libdir=/usr/lib \
 		--enable-management --disable-debug --disable-plugin-auth-pam --disable-plugin-down-root --disable-dependency-tracking \
 		$(if $(TCONFIG_OPTIMIZE_SIZE_MORE),--disable-lz4 --enable-small --disable-server) ac_cv_lib_resolv_gethostbyname=no
-	touch openvpn/.conf
+	@touch openvpn/.conf
 
 openvpn: $(OPENSSLDIR) lzo $(if $(INSTALL_ZLIB),zlib,) openvpn/Makefile
 	@$(SEP)
@@ -2224,17 +2224,15 @@ openvpn-install:
 
 openvpn_plugin_auth_nvram:nvram
 
-#shibby
 nano/stamp-h1: libncurses
-	cd nano && CC=$(CC) STRIP=$(CROSS_COMPILE)strip \
-		autoreconf && \
+	cd nano && autoreconf && \
 		CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections -fPIC" \
 		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections -fPIC" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libncurses/staged/usr/lib -fPIC" \
 		NCURSES_LIBS="-lncurses" \
 		ac_cv_lib_ncursesw_get_wch=no \
 		$(CONFIGURE) --prefix=/usr --disable-nls --enable-tiny --without-libiconv-prefix --disable-utf8
-	touch nano/stamp-h1
+	@touch $@
 
 nano: nano/stamp-h1
 	@$(SEP)
@@ -2250,12 +2248,13 @@ nano-install:
 	$(STRIP) -s $(INSTALLDIR)/nano/usr/sbin/nano
 
 ifeq ($(TCONFIG_STUBBY),y)
-CACERT:=--with-ca-bundle=/rom/cacert.pem
+CACERT:=--with-ca-fallback
 else
 CACERT:=
 endif
 
 libcurl/stamp-h1: zlib $(OPENSSLDIR)
+	$(call patch_files,libcurl)
 	cd libcurl && ./buildconf && \
 		CFLAGS="-Os -Wall -pipe -funit-at-a-time -Wno-pointer-sign -mtune=mips32 -mips32 -ffunction-sections -fdata-sections -fPIC" \
 		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC -I$(TOP)/$(OPENSSLDIR)/include" \
@@ -2270,7 +2269,7 @@ libcurl/stamp-h1: zlib $(OPENSSLDIR)
 			--disable-ldap --disable-manual --disable-telnet --disable-verbose \
 			--without-gnutls --without-krb4 --without-libidn2 --without-libpsl --disable-tls-srp \
 			--with-linux-headers=$(LINUXDIR)/include $(CACERT)
-		@touch $@
+	@touch $@
 
 libcurl: libcurl/stamp-h1
 	@$(SEP)
@@ -2288,6 +2287,7 @@ libcurl-clean:
 	-@$(MAKE) -C libcurl clean
 	@rm -f libcurl/stamp-h1 libcurl/Makefile
 	@rm -rf libcurl/staged
+	$(call unpatch_files,libcurl)
 
 libevent/stamp-h1:
 	cd libevent && ./autogen.sh && CC=$(CC) \
@@ -2312,11 +2312,11 @@ libevent-install:
 	$(STRIP) -s $(INSTALLDIR)/libevent/usr/lib/libevent-2.0.so.5
 
 libiconv/stamp-h1:
-	cd libiconv && CC=$(CC) \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
-	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
-	$(CONFIGURE) --prefix=/usr --disable-nls --enable-static --enable-shared
-	touch libiconv/stamp-h1
+	cd libiconv && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
+		$(CONFIGURE) --prefix=/usr --disable-nls --enable-static --enable-shared
+	@touch $@
 
 libiconv: libiconv/stamp-h1
 	@$(SEP)
@@ -2338,7 +2338,7 @@ libiconv-install:
 
 transmission/stamp-h1: $(OPENSSLDIR) libcurl libevent zlib
 	$(call patch_files,transmission)
-	cd $(TOP)/transmission && autoreconf -f && \
+	cd transmission && autoreconf -f && \
 		CFLAGS="-Os -Wall -pipe -mtune=mips32 -mips32 -fno-delete-null-pointer-checks -funit-at-a-time \
 			--param large-function-growth=800 --param max-inline-insns-single=3000 \
 			-ffunction-sections -fdata-sections -fPIC" \
@@ -2361,7 +2361,7 @@ transmission/stamp-h1: $(OPENSSLDIR) libcurl libevent zlib
 			ZLIB_CFLAGS="-I$(TOP)/zlib" \
 			ZLIB_LDFLAGS="-L$(TOP)/zlib" \
 			ZLIB_LIBS="-lz"
-		@touch $@
+	@touch $@
 
 transmission: transmission/stamp-h1
 	@$(SEP)
@@ -2381,11 +2381,11 @@ endif
 
 libnfsidmap/stamp-h1:
 	cd libnfsidmap && autoreconf -fsi && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
-	ac_cv_func_malloc_0_nonnull=yes \
-	ac_cv_func_realloc_0_nonnull=yes \
-	$(CONFIGURE) --prefix=/usr --enable-shared --enable-static
-	touch libnfsidmap/stamp-h1
+		CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+		ac_cv_func_malloc_0_nonnull=yes \
+		ac_cv_func_realloc_0_nonnull=yes \
+		$(CONFIGURE) --prefix=/usr --enable-shared --enable-static
+	@touch $@
 
 libnfsidmap: libnfsidmap/stamp-h1
 	@$(SEP)
@@ -2423,7 +2423,7 @@ e2fsprogs/stamp-h1:
 	cd e2fsprogs && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
 	$(CONFIGURE) --prefix=$(TOP)/e2fsprogs/staged --disable-debugfs --disable-imager --disable-resizer --disable-uuidd --disable-nls
-	touch e2fsprogs/stamp-h1
+	@touch $@
 
 e2fsprogs: e2fsprogs/stamp-h1
 	@$(SEP)
@@ -2513,7 +2513,7 @@ sd-idle/stamp-h1:
 	CFLAGS="-Os -Wall --host=$(HOST) --target=$(HOST) $(EXTRACFLAGS)" \
 	$(MAKE) -C sd-idle
 	chmod 0755 sd-idle/sd-idle
-	touch sd-idle/stamp-h1
+	@touch $@
 
 sd-idle-clean:
 	-@$(MAKE) -C sd-idle clean
@@ -2526,18 +2526,25 @@ sd-idle-install: sd-idle/stamp-h1
 
 snmp/stamp-h1:
 	$(call patch_files,snmp)
-	cd $(TOP)/snmp && autoreconf -fsi && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections $(OPTSIZE_FLAG)" \
-	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
-	$(CONFIGURE) --prefix=/usr --with-endianness=little --enable-mini-agent --disable-debugging \
-	--disable-privacy --without-opaque-special-types --with-persistent-directory=/tmp/snmp-persist \
-	--with-default-snmp-version=3 --with-sys-contact=root --with-sys-location=Unknown --with-logfile=/dev/null \
-	--with-out-transports=UDPIPv6,TCPIPv6,AAL5PVC,IPX,TCP,Unix --enable-shared=no --enable-static --with-gnu-ld \
-	--enable-internal-md5 --with-copy-persistent-files=no --without-openssl -sysconfdir=/tmp \
-	--with-mib-modules=mibII,host,mibII/ip,mibII/tcp,mibII/udp,mibII/icmp,mibII/var_route,mibII/kernel_linux,qos,ucd_snmp \
-	--with-out-mib-modules=snmpv3mibs,agent_mips,agentx,notification,utilities,target --disable-ipv6 --with-defaults \
-	--without-efence --without-rsaref --without-kmem-usage --without-rpm --without-dmalloc
-	touch snmp/stamp-h1
+	cd snmp && autoreconf -fsi && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections $(OPTSIZE_FLAG)" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
+		$(CONFIGURE) --prefix=/usr --with-persistent-directory=/tmp/snmp-persist --with-logfile=/var/log/snmpd.log \
+		--disable-debugging --disable-manuals --disable-scripts --disable-applications --disable-privacy \
+		--disable-ipv6 --disable-mibs --disable-mib-loading --disable-embedded-perl --with-perl-modules=no --without-opaque-special-types \
+		--without-openssl --without-efence --without-rsaref --without-kmem-usage --without-rpm --without-dmalloc \
+		--with-out-transports=UDPIPv6,TCPIPv6,AAL5PVC,IPX,TCP,Unix \
+		--with-out-mib-modules=snmpv3mibs,agent_mibs,agentx,notification,utilities,target \
+		--with-mib-modules="\
+			agent/extend,\
+			host/hr_device,host/hr_disk,host/hr_filesys,host/hr_network,host/hr_partition,host/hr_print,host/hr_proc,host/hrSWRunTable,host/hr_storage,host/hr_system,\
+			mibII/at,mibII/icmp,mibII/ifTable,mibII/ip,mibII/ipAddr,mibII/kernel_linux,mibII/snmp_mib,mibII/sysORTable,mibII/system_mib,mibII/tcp,mibII/udp,mibII/vacm_context,mibII/vacm_vars,mibII/var_route,\
+			ucd-snmp/disk_hw,ucd-snmp/dlmod,ucd-snmp/extensible,ucd-snmp/loadave,ucd-snmp/logmatch,ucd-snmp/memory,ucd-snmp/pass,ucd-snmp/proc,ucd-snmp/proxy,ucd-snmp/vmstat,\
+			util_funcs"\
+		--with-default-snmp-version=3 --with-sys-contact=root --with-sys-location=Unknown \
+		--with-endianness=little --enable-mini-agent --enable-shared=no --enable-static --with-gnu-ld \
+		--enable-internal-md5 --with-defaults --with-copy-persistent-files=no
+	@touch $@
 
 snmp: snmp/stamp-h1
 	@$(SEP)
@@ -2582,10 +2589,9 @@ apcupsd-install:
 	$(STRIP) $(INSTALLDIR)/apcupsd/www/apcupsd/*
 
 libsodium/stamp-h1:
-	cd $(TOP)/libsodium && CC=$(CC) STRIP=$(CROSS_COMPILE)strip \
-	autoreconf -fsi && \
-	$(CONFIGURE) --prefix=/usr --disable-ssp --enable-minimal
-	touch libsodium/stamp-h1
+	cd libsodium && autoreconf -fsi && \
+		$(CONFIGURE) --prefix=/usr --disable-ssp --enable-minimal
+	@touch $@
 
 libsodium: libsodium/stamp-h1
 	@$(SEP)
@@ -2604,13 +2610,12 @@ libsodium-clean:
 	@rm -rf libsodium/stamp-h1
 
 dnscrypt/stamp-h1: libsodium
-	cd $(TOP)/dnscrypt && CC=$(CC) STRIP=$(CROSS_COMPILE)strip \
-	autoreconf && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
-	CPPFLAGS="-I$(TOP)/libsodium/src/libsodium/include" \
-	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libsodium/src/libsodium/.libs" \
-	$(CONFIGURE) --prefix=/usr --disable-ssp
-	touch dnscrypt/stamp-h1
+	cd dnscrypt && autoreconf && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+		CPPFLAGS="-I$(TOP)/libsodium/src/libsodium/include" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libsodium/src/libsodium/.libs" \
+		$(CONFIGURE) --prefix=/usr --disable-ssp
+	@touch $@
 
 dnscrypt: dnscrypt/stamp-h1
 	@$(SEP)
@@ -2688,14 +2693,15 @@ getdns-clean:
 
 tor/stamp-h1: $(OPENSSLDIR) zlib libevent
 	cd tor && autoreconf -fsi && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/$(OPENSSLDIR)/include -ffunction-sections -fdata-sections" \
-	CPPFLAGS="-I$(TOP)/$(OPENSSLDIR)/include" \
-	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
-	$(CONFIGURE) --prefix=/usr --with-libevent-dir=$(TOP)/libevent/staged/usr/local \
-		--with-openssl-dir=$(TOP)/$(OPENSSLDIR) --with-zlib-dir=$(TOP)/zlib \
-		--disable-asciidoc --disable-tool-name-check --disable-unittests --disable-lzma \
-		--disable-seccomp --disable-libscrypt --disable-zstd-advanced-apis --disable-dependency-tracking
-	touch tor/stamp-h1
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/$(OPENSSLDIR)/include -ffunction-sections -fdata-sections" \
+		CPPFLAGS="-I$(TOP)/$(OPENSSLDIR)/include" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
+		$(CONFIGURE) --prefix=/usr --with-libevent-dir=$(TOP)/libevent/staged/usr/local \
+			--with-openssl-dir=$(TOP)/$(OPENSSLDIR) --with-zlib-dir=$(TOP)/zlib \
+			--disable-asciidoc --disable-tool-name-check --disable-unittests --disable-lzma \
+			--disable-seccomp --disable-libscrypt --disable-zstd-advanced-apis \
+			--disable-manpage --disable-html-manual --disable-dependency-tracking
+	@touch $@
 
 tor: tor/stamp-h1
 	@$(SEP)
@@ -2712,7 +2718,7 @@ tor-clean:
 
 udpxy/stamp-h1:
 	$(call patch_files,udpxy)
-	touch udpxy/stamp-h1
+	@touch $@
 
 udpxy: udpxy/stamp-h1
 	@$(SEP)
@@ -2756,6 +2762,7 @@ ipset-clean:
 	-@$(MAKE) -C ipset clean
 
 libjson-c/build/Makefile:
+	$(call patch_files,libjson-c)
 	@rm -rf libjson-c/build && mkdir -p libjson-c/build
 	cd libjson-c/build && \
 	$(call CMAKE_CrossOptions, crosscompiled.cmake) && \
@@ -2766,6 +2773,7 @@ libjson-c/build/Makefile:
 		-DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections" \
 		-DBUILD_TESTING=FALSE \
 		-DDISABLE_WERROR=TRUE \
+		-DBUILD_STATIC_LIBS=FALSE \
 		..
 
 libjson-c: libjson-c/build/Makefile
@@ -2775,6 +2783,7 @@ libjson-c: libjson-c/build/Makefile
 
 libjson-c-clean:
 	@rm -rf libjson-c/build
+	$(call unpatch_files,libjson-c)
 
 uqmi: libjson-c
 	@$(SEP)
@@ -2794,7 +2803,7 @@ uqmi-clean: libjson-c-clean
 comgt:
 	@$(SEP)
 	$(call patch_files,comgt)
-	@$(MAKE) -C comgt CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS)" LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" comgt
+	@$(MAKE) -C comgt CFLAGS="-Os $(EXTRACFLAGS)" LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" comgt
 
 comgt-install:
 	install -D comgt/comgt $(INSTALLDIR)/comgt/usr/sbin/comgt
@@ -2809,13 +2818,12 @@ comgt-clean:
 	$(call unpatch_files,comgt)
 
 iperf/stamp-h1:
-	cd $(TOP)/iperf && CC=$(CC) STRIP=$(CROSS_COMPILE)strip \
-	autoreconf -fsi && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
-	ac_cv_func_clock_gettime="no" \
-	ac_cv_func_daemon="no" \
-	$(CONFIGURE) --prefix=/usr --disable-profiling --without-openssl
-	touch iperf/stamp-h1
+	cd iperf && autoreconf -fsi && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+		ac_cv_func_clock_gettime="no" \
+		ac_cv_func_daemon="no" \
+		$(CONFIGURE) --prefix=/usr --disable-profiling --without-openssl
+	@touch $@
 
 iperf: iperf/stamp-h1
 	@$(SEP)
