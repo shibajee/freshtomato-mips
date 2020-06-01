@@ -15,6 +15,7 @@ include common.mak
 #TOMATO_EXPERIMENTAL=0
 
 export PARALLEL_BUILD := -j`grep -c '^processor' /proc/cpuinfo`
+export HAVE_TOMATO := y
 
 
 define patch_files
@@ -866,9 +867,9 @@ openssl-install:
 
 openssl-1.1/stamp-h1:
 ifeq ($(TCONFIG_KEYGEN),y)
-	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch patches/openssl/104-reduce-size-for-smaller-targets.patch.tmp || true
+	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch.tmp || true
 else
-	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch.tmp patches/openssl/104-reduce-size-for-smaller-targets.patch || true
+	mv patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch.tmp patches/openssl-1.1/104-reduce-size-for-smaller-targets.patch || true
 endif
 	$(call patch_files,openssl-1.1)
 	cd openssl-1.1 && \
@@ -877,7 +878,7 @@ endif
 	NM=$(NM:$(CROSS_COMPILE)%=%) \
 	RANLIB=$(RANLIB:$(CROSS_COMPILE)%=%) \
 	./Configure $(HOSTCONFIG) --prefix=/usr --openssldir=/etc/ssl \
-	-Os -ffunction-sections -fdata-sections -Wl,--gc-sections -fomit-frame-pointer \
+	$(CFLAG_OPTIMIZE) -ffunction-sections -fdata-sections -Wl,--gc-sections -fomit-frame-pointer \
 	shared $(OPENSSL_CIPHERS) no-ssl3 no-err no-async --api=1.0.0 \
 	no-aria no-sm2 no-sm3 no-sm4 $(if $(TCONFIG_BBT),,no-rc4) \
 	-DOPENSSL_PREFER_CHACHA_OVER_GCM
@@ -2280,6 +2281,7 @@ CACERT:=
 endif
 
 libcurl/stamp-h1: zlib $(OPENSSLDIR)
+	$(call patch_files,libcurl)
 	cd libcurl && ./buildconf && \
 		CFLAGS="-Os -Wall -pipe -funit-at-a-time -Wno-pointer-sign -mtune=mips32 -mips32 -ffunction-sections -fdata-sections -fPIC" \
 		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC -I$(TOP)/$(OPENSSLDIR)/include" \
@@ -2312,6 +2314,7 @@ libcurl-clean:
 	-@$(MAKE) -C libcurl clean
 	@rm -f libcurl/stamp-h1 libcurl/Makefile
 	@rm -rf libcurl/staged
+	$(call unpatch_files,libcurl)
 
 libevent/stamp-h1:
 	cd libevent && ./autogen.sh && CC=$(CC) \
@@ -2786,6 +2789,7 @@ ipset-clean:
 	-@$(MAKE) -C ipset clean
 
 libjson-c/build/Makefile:
+	$(call patch_files,libjson-c)
 	@rm -rf libjson-c/build && mkdir -p libjson-c/build
 	cd libjson-c/build && \
 	$(call CMAKE_CrossOptions, crosscompiled.cmake) && \
@@ -2796,6 +2800,7 @@ libjson-c/build/Makefile:
 		-DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections" \
 		-DBUILD_TESTING=FALSE \
 		-DDISABLE_WERROR=TRUE \
+		-DBUILD_STATIC_LIBS=FALSE \
 		..
 
 libjson-c: libjson-c/build/Makefile
@@ -2805,6 +2810,7 @@ libjson-c: libjson-c/build/Makefile
 
 libjson-c-clean:
 	@rm -rf libjson-c/build
+	$(call unpatch_files,libjson-c)
 
 uqmi: libjson-c
 	@$(SEP)
