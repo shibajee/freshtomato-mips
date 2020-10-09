@@ -1069,7 +1069,6 @@ const defaults_t defaults[] = {
 	{ "vpn_server1_crypt",		"tls"				},
 	{ "vpn_server1_comp",		"-1"				},
 	{ "vpn_server1_cipher",		"AES-128-CBC"			},
-	{ "vpn_server1_ncp_enable",	"1"				},
 #if 0
 	{ "vpn_server1_ncp_ciphers",	"AES-256-GCM:AES-128-GCM:AES-256-CBC:AES-128-CBC"},
 #else
@@ -1102,9 +1101,11 @@ const defaults_t defaults[] = {
 	{ "vpn_server1_ca",		""				},
 	{ "vpn_server1_ca_key",		""				},
 	{ "vpn_server1_crt",		""				},
+	{ "vpn_server1_crl",		""				},
 	{ "vpn_server1_key",		""				},
 	{ "vpn_server1_dh",		""				},
 	{ "vpn_server1_br",		"br0"				},
+	{ "vpn_server1_serial",		"00"				},
 	{ "vpn_server2_poll",		"0"				},
 	{ "vpn_server2_if",		"tun"				},
 	{ "vpn_server2_proto",		"udp"				},
@@ -1113,7 +1114,6 @@ const defaults_t defaults[] = {
 	{ "vpn_server2_crypt",		"tls"				},
 	{ "vpn_server2_comp",		"-1"				},
 	{ "vpn_server2_cipher",		"AES-128-CBC"			},
-	{ "vpn_server2_ncp_enable",	"1"				},
 #if 0
 	{ "vpn_server2_ncp_ciphers",	"AES-256-GCM:AES-128-GCM:AES-256-CBC:AES-128-CBC"},
 #else
@@ -1146,9 +1146,11 @@ const defaults_t defaults[] = {
 	{ "vpn_server2_ca",		""				},
 	{ "vpn_server2_ca_key",		""				},
 	{ "vpn_server2_crt",		""				},
+	{ "vpn_server1_crl",		""				},
 	{ "vpn_server2_key",		""				},
 	{ "vpn_server2_dh",		""				},
 	{ "vpn_server2_br",		"br0"				},
+	{ "vpn_server2_serial",		"00"				},
 	{ "vpn_client_eas",		""				},
 	{ "vpn_client1_poll",		"0"				},
 	{ "vpn_client1_if",		"tun"				},
@@ -1163,7 +1165,6 @@ const defaults_t defaults[] = {
 	{ "vpn_client1_crypt",		"tls"				},
 	{ "vpn_client1_comp",		"-1"				},
 	{ "vpn_client1_cipher",		"default"			},
-	{ "vpn_client1_ncp_enable",	"1"				},
 #if 0
 	{ "vpn_client1_ncp_ciphers",	"AES-256-GCM:AES-128-GCM:AES-256-CBC:AES-128-CBC"},
 #else
@@ -1187,6 +1188,7 @@ const defaults_t defaults[] = {
 	{ "vpn_client1_nobind",		"1"				},
 	{ "vpn_client1_routing_val",	""				},
 	{ "vpn_client1_fw",		"1"				},
+	{ "vpn_client1_tlsvername",	"0"				},
 	{ "vpn_client2_poll",		"0"				},
 	{ "vpn_client2_if",		"tun"				},
 	{ "vpn_client2_bridge",		"1"				},
@@ -1200,7 +1202,6 @@ const defaults_t defaults[] = {
 	{ "vpn_client2_crypt",		"tls"				},
 	{ "vpn_client2_comp",		"-1"				},
 	{ "vpn_client2_cipher",		"default"			},
-	{ "vpn_client2_ncp_enable",	"1"				},
 #if 0
 	{ "vpn_client2_ncp_ciphers",	"AES-256-GCM:AES-128-GCM:AES-256-CBC:AES-128-CBC"},
 #else
@@ -1224,6 +1225,7 @@ const defaults_t defaults[] = {
 	{ "vpn_client2_nobind",		"1"				},
 	{ "vpn_client2_routing_val",	""				},
 	{ "vpn_client2_fw",		"1"				},
+	{ "vpn_client2_tlsvername",	"0"				},
 #endif
 
 #ifdef TCONFIG_PPTPD
