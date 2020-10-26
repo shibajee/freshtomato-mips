@@ -563,6 +563,8 @@ static const nvset_t nvset_list[] = {
 	{ "tm_dst",			V_01				},
 	{ "ntp_updates",		V_RANGE(-1, 24)			},
 	{ "ntp_server",			V_LENGTH(1, 150)		},	// x y z
+	{ "ntpd_enable",		V_01				},	/* enable ntpd server */
+	{ "ntpd_server_redir",		V_01				},	/* intercept ntp requests */
 
 // basic-static
 	{ "dhcpd_static",		V_LENGTH(0, 108*251)		},	// 108 (max chars per entry) x 250 entries
@@ -952,7 +954,7 @@ static const nvset_t nvset_list[] = {
 	{ "dns_norebind",		V_01				},
 	{ "dns_priv_override",		V_01				},	/* override DoH */
 	{ "dnsmasq_debug",		V_01				},
-	{ "dnsmasq_custom",		V_TEXT(0, 2048)			},
+	{ "dnsmasq_custom",		V_TEXT(0, 4096)			},
 	{ "dnsmasq_q",			V_RANGE(0,7)			},	// bitfield quiet bit0=dhcp, 1=dhcp6, 2=ra
 #ifdef TCONFIG_TOR
 	{ "dnsmasq_onion_support",	V_01				},
