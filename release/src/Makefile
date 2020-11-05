@@ -1298,7 +1298,7 @@ w1800rz:
 	@$(MAKE) o MIPS32=r2 NVRAM_64K=y ASUS_TRX="W1800R"
 
 dir865le:
-	@$(MAKE) e MIPS32=r2 NVRAM_SIZE=32 ASUS_TRX="DIR865L"
+	@$(MAKE) bin MIPS32=r2 NVRAM_SIZE=32 USB="USB" B=E NTFS=y EBTABLES=y MULTIWAN=y IPV6SUPP=y USBEXTRAS=y BCMNAT=y BBEXTRAS=y NANO=y DNSSEC=y DNSCRYPT=y STUBBY=y ADVTHEMES=y OPENSSL11=y ASUS_TRX="DIR865L" BUILD_DESC="Custom"
 
 dir865lo:
 	@$(MAKE) o MIPS32=r2 NVRAM_SIZE=32 ASUS_TRX="DIR865L"
@@ -1487,7 +1487,7 @@ ifeq ($(CONFIG_BCMWL6),y)
 	@echo "w1800re      Tenda W1800R build VPN"
 	@echo "w1800rz      Tenda W1800R build AIO"
 	@echo "dir865le     D-link DIR-865L build VPN"
-	@echo "dir865lz     D-link DIR-865L build Mega-VPN"
+	@echo "dir865lo     D-link DIR-865L build Mega-VPN"
 	@echo "r6300e       Netgear R6300V1 build VPN"
 	@echo "r6300z       Netgear R6300V1 build AIO"
 	@echo "wndr4500e    Netgear WNDR4500V1 build VPN"
