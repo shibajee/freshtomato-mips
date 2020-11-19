@@ -964,7 +964,6 @@ static const nvset_t nvset_list[] = {
 	{ "block_wan",			V_01				},
 	{ "block_wan_limit",		V_01				},
 	{ "block_wan_limit_icmp",	V_RANGE(1, 300)			},
-	{ "block_wan_limit_tr",		V_RANGE(1, 300)			},
 	{ "multicast_pass",		V_01				},
 	{ "multicast_lan",		V_01				},
 	{ "multicast_lan1",		V_01				},
@@ -1110,7 +1109,6 @@ static const nvset_t nvset_list[] = {
 	{ "lan_access",			V_LENGTH(0, 4096)		},
 
 // advanced-wireless
-	{ "wl_country",			V_LENGTH(0, 64)			},	// !!TB - Country code
 	{ "wl_country_code",		V_LENGTH(0, 4)			},	// !!TB - Country code
 #ifdef CONFIG_BCMWL6
 	{ "wl_country_rev",		V_RANGE(0, 999)			},	/* Country rev */
