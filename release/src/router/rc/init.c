@@ -1304,9 +1304,6 @@ static int init_nvram(void)
 #endif
 	}
 
-	/* !!TB - do not force country code here to allow nvram override */
-	//nvram_set("wl_country", "JP");
-	//nvram_set("wl_country_code", "JP");
 	nvram_set("wan_get_dns", "");
 	nvram_set("wan_get_domain", "");
 	nvram_set("wan_ppp_get_ip", "0.0.0.0");
@@ -1699,6 +1696,7 @@ int init_main(int argc, char *argv[])
 				add_remove_usbhost("-1", 1);
 #endif
 
+			log_segfault();
 			create_passwd();
 			start_vlan();
 			start_lan();

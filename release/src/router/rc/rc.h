@@ -370,6 +370,7 @@ extern void create_test_iptfile(void);
 #endif
 extern void allow_fastnat(const char *service, int allow);
 extern void try_enabling_fastnat(void);
+extern void log_segfault(void);
 
 /* forward.c */
 extern void ipt_forward(ipt_table_t table);
@@ -467,7 +468,7 @@ extern int mtd_unlock_erase_main(int argc, char *argv[]);
 /* buttons.c */
 extern int buttons_main(int argc, char *argv[]);
 
-#if defined(TCONFIG_BCMARM) || defined(CONFIG_BLINK)
+#if defined(TCONFIG_BCMARM) || defined(TCONFIG_BLINK)
 /* blink.c */
 extern int blink_main(int argc, char *argv[]);
 
