@@ -221,11 +221,6 @@ static void wo_shell(char *url)
 #endif
 }
 
-static void wo_blank(char *url)
-{
-	web_puts("\n\n\n\n");
-}
-
 static void wo_cfe(char *url)
 {
 	do_file(MTD_DEV(0ro));
@@ -276,7 +271,6 @@ const struct mime_handler mime_handlers[] = {
 	{ "update.cgi",			mime_javascript,			0,	wi_generic,		wo_update,		1 },
 	{ "tomato.cgi",			NULL,					0,	wi_generic,		wo_tomato,		1 },
 
-	{ "debug.js",			mime_javascript,			12,	wi_generic_noid,	wo_blank,		1 },	// while debugging
 	{ "cfe/*.bin",			mime_binary,				0,	wi_generic,		wo_cfe,			1 },
 	{ "nvram/*.txt",		mime_binary,				0,	wi_generic,		wo_nvram,		1 },
 	{ "ipt/*.txt",			mime_binary,				0,	wi_generic,		wo_iptables,		1 },
@@ -351,12 +345,12 @@ const struct mime_handler mime_handlers[] = {
 	{ "usbcmd.cgi",			mime_javascript,			0,	wi_generic,		wo_usbcommand,		1 },	//!!TB - USB
 	{ "wwansignal.cgi",		mime_html,				0,	wi_generic,		wo_wwansignal,		1 },
 	{ "wwansms.cgi",		mime_html,				0,	wi_generic,		wo_wwansms,		1 },
-	{ "wwansmsdelete.cgi",		mime_html,				0,	wi_generic,		wo_wwansms_delete,		1 },
+	{ "wwansmsdelete.cgi",		mime_html,				0,	wi_generic,		wo_wwansms_delete,	1 },
 #endif
 #ifdef TCONFIG_IPERF
-	{ "iperfstatus.cgi",			mime_javascript,			0,	wi_generic,		wo_ttcpstatus,		1 },
-	{ "iperfrun.cgi",			mime_javascript,			0,	wi_generic,		wo_ttcprun,		1 },
-	{ "iperfkill.cgi",			mime_javascript,			0,	wi_generic,		wo_ttcpkill,		1 },
+	{ "iperfstatus.cgi",		mime_javascript,			0,	wi_generic,		wo_ttcpstatus,		1 },
+	{ "iperfrun.cgi",		mime_javascript,			0,	wi_generic,		wo_ttcprun,		1 },
+	{ "iperfkill.cgi",		mime_javascript,			0,	wi_generic,		wo_ttcpkill,		1 },
 #endif
 #ifdef BLACKHOLE
 	{ "blackhole.cgi",		NULL,					0,	wi_blackhole,		NULL,			1 },
@@ -432,8 +426,10 @@ const aspapi_t aspapi[] = {
 #ifdef TCONFIG_IPV6
 	{ "calc6rdlocalprefix",		asp_calc6rdlocalprefix		},
 #endif
-
 	{ "css",			asp_css				},
+#ifdef TCONFIG_STUBBY
+	{ "stubby_presets",		asp_stubby_presets		},
+#endif
 	{ NULL,				NULL				}
 };
 
@@ -749,6 +745,8 @@ static const nvset_t nvset_list[] = {
 #ifdef TCONFIG_STUBBY
 	{ "stubby_proxy",		V_01				},
 	{ "stubby_priority",		V_RANGE(0, 2)			},	// 0=none, 1=strict-order, 2=no-resolv
+	{ "stubby_port",		V_PORT				},
+	{ "stubby_resolvers",		V_LENGTH(0, 1024)		},
 	{ "stubby_log",			V_RANGE(0, 7)			},
 #endif
 	{ "lan_state",			V_01				},
@@ -1456,21 +1454,23 @@ static const nvset_t nvset_list[] = {
 	{ "qos_pfifo",			V_01				},	// !!TB
 	{ "wan_qos_obw",		V_RANGE(10, 99999999)		},
 	{ "wan_qos_ibw",		V_RANGE(10, 99999999)		},
+	{ "wan_qos_overhead",		V_RANGE(-127, 128)		},
 	{ "wan2_qos_obw",		V_RANGE(10, 99999999)		},
 	{ "wan2_qos_ibw",		V_RANGE(10, 99999999)		},
+	{ "wan2_qos_overhead",		V_RANGE(-127, 128)		},
 #ifdef TCONFIG_MULTIWAN
 	{ "wan3_qos_obw",		V_RANGE(10, 99999999)		},
 	{ "wan3_qos_ibw",		V_RANGE(10, 99999999)		},
+	{ "wan3_qos_overhead",		V_RANGE(-127, 128)		},
 	{ "wan4_qos_obw",		V_RANGE(10, 99999999)		},
 	{ "wan4_qos_ibw",		V_RANGE(10, 99999999)		},
+	{ "wan4_qos_overhead",		V_RANGE(-127, 128)		},
 #endif
-
 	{ "qos_orules",			V_LENGTH(0, 4096)		},
 	{ "qos_default",		V_RANGE(0, 9)			},
 	{ "qos_irates",			V_LENGTH(0, 128)		},
 	{ "qos_orates",			V_LENGTH(0, 128)		},
 	{ "qos_classnames",		V_LENGTH(10, 128)		},	// !!TOASTMAN
-	{ "atm_overhead",		V_RANGE(-127, 128)		},
 	{ "ne_vegas",			V_01				},
 	{ "ne_valpha",			V_NUM				},
 	{ "ne_vbeta",			V_NUM				},
