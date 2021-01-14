@@ -163,8 +163,10 @@ const defaults_t defaults[] = {
 #endif
 #ifdef TCONFIG_STUBBY
 	{ "stubby_proxy",		"0"				},
-	{ "stubby_priority",		"2"				},	// 0=none, 1=strict-order, 2=no-resolv
-	{ "stubby_log",			"4"				},	// log level
+	{ "stubby_priority",		"2"				},	/* 0=none, 1=strict-order, 2=no-resolv */
+	{ "stubby_port",		"5453"				},	/* local port */
+	{ "stubby_resolvers",		"<1.1.1.1>>cloudflare-dns.com><1.0.0.1>>cloudflare-dns.com>"},	/* default DoT resolvers */
+	{ "stubby_log",			"4"				},	/* log level */
 #endif
 	{ "wan_wins",			""				},	// x.x.x.x x.x.x.x ...
 	{ "wan_lease",			"86400"				},	// WAN lease time in seconds
@@ -723,7 +725,6 @@ const defaults_t defaults[] = {
 #endif
 
 /* qos */
-	{ "atm_overhead",		"0"				},
 	{ "qos_enable",			"0"				},
 	{ "qos_ack",			"0"				},
 	{ "qos_syn",			"1"				},
@@ -734,13 +735,17 @@ const defaults_t defaults[] = {
 	{ "qos_reset",			"1"				},
 	{ "wan_qos_obw",		"700"				},
 	{ "wan_qos_ibw",		"16000"				},
+	{ "wan_qos_overhead",		"0"				},
 	{ "wan2_qos_obw",		"700"				},
 	{ "wan2_qos_ibw",		"16000"				},
+	{ "wan2_qos_overhead",		"0"				},
 #ifdef TCONFIG_MULTIWAN
 	{ "wan3_qos_obw",		"700"				},
 	{ "wan3_qos_ibw",		"16000"				},
+	{ "wan3_qos_overhead",		"0"				},
 	{ "wan4_qos_obw",		"700"				},
 	{ "wan4_qos_ibw",		"16000"				},
+	{ "wan4_qos_overhead",		"0"				},
 #endif
 #if defined(TCONFIG_NVRAM_32K) || defined(TCONFIG_OPTIMIZE_SIZE_MORE)
 	{ "qos_orules",			"0<<-1<d<53<0<<0:10<<0<DNS"	},

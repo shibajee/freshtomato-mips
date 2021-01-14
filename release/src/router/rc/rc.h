@@ -552,8 +552,8 @@ extern void run_tinc_firewall_script();
 
 /* bwlimit.c */
 extern void ipt_bwlimit(int chain);
-extern void bwlimit_start(void);
-extern void bwlimit_stop(void);
+extern void start_bwlimit(void);
+extern void stop_bwlimit(void);
 
 /* arpbind.c */
 extern void start_arpbind(void);
@@ -569,7 +569,6 @@ extern void stop_mmc(void);
 #ifdef TCONFIG_NOCAT
 extern void start_nocat();
 extern void stop_nocat();
-extern void reset_nocat();
 #endif
 
 /* nginx.c */
