@@ -140,8 +140,8 @@ extern void start_pppoe(int, char *prefix);
 extern void stop_pppoe(char *prefix);
 extern void start_l2tp(char *prefix);
 extern void stop_l2tp(char *prefix);
-extern void start_wan_if(int mode, char *prefix);
-extern void start_wan(int mode);
+extern void start_wan_if(char *prefix);
+extern void start_wan(void);
 extern void start_wan_done(char *ifname,char *prefix);
 extern void start_wanall_done(void);
 extern char *wan_gateway(char *prefix);
@@ -201,6 +201,7 @@ extern int dhcpc_release_main(int argc, char **argv);
 extern int dhcpc_renew_main(int argc, char **argv);
 extern void start_dhcpc(char *prefix);
 extern void stop_dhcpc(char *prefix);
+extern void do_connect_file(unsigned int renew, char *prefix);
 #ifdef TCONFIG_IPV6
 extern int dhcp6c_state_main(int argc, char **argv);
 extern void start_dhcp6c(void);
@@ -267,6 +268,10 @@ extern void stop_6rd_tunnel(void);
 extern void start_ipv6(void);
 extern void stop_ipv6(void);
 #endif /* TCONFIG_IPV6 */
+#ifdef TCONFIG_BCMBSD
+int start_bsd(void);
+void stop_bsd(void);
+#endif /* TCONFIG_BCMBSD */
 
 /* usb.c */
 #ifdef TCONFIG_USB
