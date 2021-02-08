@@ -81,9 +81,6 @@ static pid_t pid_dnsmasq = -1;
 static pid_t pid_crond = -1;
 static pid_t pid_hotplug2 = -1;
 static pid_t pid_igmp = -1;
-#ifdef TCONFIG_NGINX
-static pid_t pid_nginx = -1;
-#endif
 #ifdef TCONFIG_FANCTRL
 static pid_t pid_phy_tempsense = -1;
 #endif
@@ -523,8 +520,11 @@ void start_dnsmasq()
 			ipv6_lease = 12;
 
 		/* enable-ra should be enabled in both cases */
-		if ((nvram_get_int("ipv6_radvd")) || (nvram_get_int("ipv6_dhcpd")))
+		if ((nvram_get_int("ipv6_radvd")) || (nvram_get_int("ipv6_dhcpd"))) {
 			fprintf(f, "enable-ra\n");
+			if (nvram_get_int("ipv6_fast_ra"))
+				fprintf(f, "ra-param=br*, 15, 600\n"); /* interface = br*, ra-interval = 15 sec, router-lifetime = 600 sec (10 min) */
+		}
 
 		/* only SLAAC and NO DHCPv6 */
 		if ((nvram_get_int("ipv6_radvd")) && (!nvram_get_int("ipv6_dhcpd")))
@@ -537,6 +537,9 @@ void start_dnsmasq()
 		/* SLAAC and DHCPv6 (2 IPv6 IPs) */
 		if ((nvram_get_int("ipv6_radvd")) && (nvram_get_int("ipv6_dhcpd")))
 			fprintf(f, "dhcp-range=::2, ::FFFF:FFFF, constructor:br*, ra-names, 64, %dh\n", ipv6_lease);
+
+		/* DNS server */
+		fprintf(f, "dhcp-option=option6:dns-server,%s\n", "[::]"); /* use global address */
 
 		/* SNTP & NTP server */
 		if (nvram_get_int("ntpd_enable")) {
@@ -710,7 +713,10 @@ void start_stubby(void)
 	            "listen_addresses:\n"
 	            "  - 127.0.0.1@%s\n",
 	            nvram_safe_get("stubby_port"));
-
+#ifdef TCONFIG_IPV6
+	if (get_ipv6_service() != *("NULL")) /* when ipv6 enabled */
+		fprintf(fp, "  - 0::1@%s\n", nvram_safe_get("stubby_port"));
+#endif
 	/* upstreams */
 	fprintf(fp, "upstream_recursive_servers:\n");
 
@@ -1867,35 +1873,6 @@ void stop_udpxy(void)
 	killall_tk_period_wait("udpxy", 50);
 }
 
-#ifdef TCONFIG_NGINX
-void start_enginex(void)
-{
-	pid_nginx =-1;
-	start_nginx();
-	if (!nvram_contains_word("debug_norestart", "enginex"))
-		pid_nginx = -2;
-}
-
-void stop_enginex(void)
-{
-	pid_nginx = -1;
-	stop_nginx();
-}
-
-void start_nginxfastpath(void)
-{
-	pid_nginx =-1;
-	start_nginxfp();
-	if (!nvram_contains_word("debug_norestart", "nginxfp"))
-		pid_nginx = -2;
-}
-void stop_nginxfastpath(void)
-{
-	pid_nginx = -1;
-	stop_nginxfp();
-}
-#endif /* TCONFIG_NGINX */
-
 void set_tz(void)
 {
 	f_write_string("/etc/TZ", nvram_safe_get("tm_tz"), (FW_CREATE | FW_NEWLINE), 0644);
@@ -2938,7 +2915,7 @@ void start_services(void)
 	start_cifs();
 	start_httpd();
 #ifdef TCONFIG_NGINX
-	start_enginex();
+	start_nginx();
 	start_mysql();
 #endif
 	start_cron();
@@ -3033,7 +3010,7 @@ void stop_services(void)
 	stop_cron();
 #ifdef TCONFIG_NGINX
 	stop_mysql();
-	stop_enginex();
+	stop_nginx();
 #endif
 #ifdef TCONFIG_SDHC
 	stop_mmc();
@@ -3725,17 +3702,17 @@ TOP:
 
 #ifdef TCONFIG_NGINX
 	if (strcmp(service, "enginex") == 0) {
-		if (act_stop) stop_enginex();
+		if (act_stop) stop_nginx();
 		stop_firewall();
 		start_firewall(); /* always restarted */
-		if (act_start) start_enginex();
+		if (act_start) start_nginx();
 		goto CLEAR;
 	}
 	if (strcmp(service, "nginxfp") == 0) {
-		if (act_stop) stop_nginxfastpath();
+		if (act_stop) stop_nginxfp();
 		stop_firewall();
 		start_firewall(); /* always restarted */
-		if (act_start) start_nginxfastpath();
+		if (act_start) start_nginxfp();
 		goto CLEAR;
 	}
 	if (strcmp(service, "mysql") == 0) {
