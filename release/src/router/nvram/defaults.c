@@ -171,17 +171,13 @@ const defaults_t defaults[] = {
 #endif
 	{ "wan_wins",			""				},	// x.x.x.x x.x.x.x ...
 	{ "wan_lease",			"86400"				},	// WAN lease time in seconds
-	{ "wan_islan",			"0"				},
 	{ "wan_modem_ipaddr",		"0.0.0.0"			},	// modem IP address (i.e. PPPoE bridged modem)
 
 	{ "wan_primary",		"1"				},	// Primary wan connection
 	{ "wan_unit",			"0"				},	// Last configured connection
-	{ "wan2_islan",			"0"				},
 	{ "wan2_modem_ipaddr",		"0.0.0.0"			},	// modem IP address (i.e. PPPoE bridged modem)
 #ifdef TCONFIG_MULTIWAN
-	{ "wan3_islan",			"0"				},
 	{ "wan3_modem_ipaddr",		"0.0.0.0"			},	// modem IP address (i.e. PPPoE bridged modem)
-	{ "wan4_islan",			"0"				},
 	{ "wan4_modem_ipaddr",		"0.0.0.0"			},	// modem IP address (i.e. PPPoE bridged modem)
 #endif
 
@@ -331,6 +327,7 @@ const defaults_t defaults[] = {
 	{ "ipv6_dhcpd",			"1"				},	// Enable DHCPv6
 	{ "ipv6_lease_time",		"12"				},	// DHCP IPv6 default lease time in hours
 	{ "ipv6_accept_ra",		"1"				},	// Enable Accept RA on WAN (bit 0) and/or LAN (bit 1) interfaces (br0...br3 if available)
+	{ "ipv6_fast_ra",		"0"				},	// Enable fast RA option --> send frequent RAs
 	{ "ipv6_ifname",		"six0"				},	// The interface facing the rest of the IPv6 world
 	{ "ipv6_tun_v4end",		"0.0.0.0"			},	// Foreign IPv4 endpoint of SIT tunnel
 	{ "ipv6_relay",			"1"				},	// Foreign IPv4 endpoint host of SIT tunnel 192.88.99.?
