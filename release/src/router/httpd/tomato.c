@@ -977,6 +977,7 @@ static const nvset_t nvset_list[] = {
 	{ "udpxy_stats",		V_01				},
 	{ "udpxy_clients",		V_RANGE(1, 5000)		},
 	{ "udpxy_port",			V_RANGE(0, 65535)		},
+	{ "udpxy_wanface",		V_TEXT(0, 8)			},	/* alternative wanface */
 	{ "nf_loopback",		V_NUM				},
 	{ "ne_syncookies",		V_01				},
 	{ "DSCP_fix_enable",		V_01				},
@@ -1297,6 +1298,7 @@ static const nvset_t nvset_list[] = {
 	{ "log_out",			V_RANGE(0, 3)			},
 	{ "log_mark",			V_RANGE(0, 99999)		},
 	{ "log_events",			V_TEXT(0, 32)			},	// "acre,crond,ntp"
+	{ "log_dropdups",		V_01				},	/* drop duplicates? */
 
 // admin-log-webmonitor
 	{ "log_wm",			V_01				},
@@ -1666,7 +1668,6 @@ static const nvset_t nvset_list[] = {
 	{ "vpn_server1_key",		V_NONE				},
 	{ "vpn_server1_dh",		V_NONE				},
 	{ "vpn_server1_br",		V_LENGTH(0, 50)			},
-	{ "vpn_server1_serial",		V_TEXT(0, 2)			},	/* cert serial number */
 	{ "vpn_server2_poll",		V_RANGE(0, 30)			},
 	{ "vpn_server2_if",		V_TEXT(3, 3)			},	// tap, tun
 	{ "vpn_server2_proto",		V_TEXT(3, 11)			},	// udp, tcp-server, udp4, tcp4-server, udp6, tcp6-server
@@ -1708,7 +1709,6 @@ static const nvset_t nvset_list[] = {
 	{ "vpn_server2_key",		V_NONE				},
 	{ "vpn_server2_dh",		V_NONE				},
 	{ "vpn_server2_br",		V_LENGTH(0, 50)			},
-	{ "vpn_server2_serial",		V_TEXT(0, 2)			},	/* cert serial number */
 	{ "vpn_client_eas",		V_NONE				},
 	{ "vpn_client1_poll",		V_RANGE(0, 30)			},
 	{ "vpn_client1_if",		V_TEXT(3, 3)			},	// tap, tun
