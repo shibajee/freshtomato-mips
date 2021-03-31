@@ -20,7 +20,7 @@
 	June 2014 Tvlz
 	https://bitbucket.org/tvlz/tvlz-advanced-vlan/
 
-	** Last Updated - Mar 14 2021 - pedro **
+	** Last Updated - Mar 24 2021 - Tvlz **
 
 	For use with Tomato Firmware only.
 	No part of this file may be used without permission.
@@ -66,12 +66,10 @@ function ethstates() {
 	if (port == 'disabled')
 		return 0;
 
-	var j = 0;
-	for (var i of [1, 2, 3, 4, 0]) { /* port order in the table */
+	for (var i = 0 ; i <= MAX_PORT_ID ; i++) {
 		port = eval('etherstates.port'+i);
 		state = _ethstates(port);
-		elem.setInnerHTML('vport_'+j, '<img src="'+state[0]+'.gif" id="'+state[0]+'_'+j+'" title="'+state[1]+'" alt="">');
-		++j;
+		elem.setInnerHTML('vport_'+i, '<img src="'+state[0]+'.gif" id="'+state[0]+'_'+i+'" title="'+state[1]+'" alt="">');
 	}
 }
 
@@ -115,11 +113,11 @@ switch (nvram['t_model_name']) {
 	case 'Netgear WNDR4000':
 	case 'Netgear WNDR4500 V1':
 	case 'Netgear WNDR4500 V2':
-		COL_P0N = '0';
-		COL_P1N = '1';
-		COL_P2N = '2';
-		COL_P3N = '3';
-		COL_P4N = '4';
+		COL_P0N = '4';
+		COL_P1N = '0';
+		COL_P2N = '1';
+		COL_P3N = '2';
+		COL_P4N = '3';
 		break;
 	case 'vlan-testid1':
 	case 'Asus RT-AC66U':
@@ -141,11 +139,11 @@ switch (nvram['t_model_name']) {
 	case 'Tenda N6':
 /*	case 'Tenda N80': */
 	case 'Tenda W1800R':
-		COL_P0N = '1';
-		COL_P1N = '2';
-		COL_P2N = '3';
-		COL_P3N = '4';
-		COL_P4N = '0';
+		COL_P0N = '0';
+		COL_P1N = '1';
+		COL_P2N = '2';
+		COL_P3N = '3';
+		COL_P4N = '4';
 		break;
 	case 'vlan-testid2':
 	case 'Asus RT-N10P':
@@ -164,11 +162,11 @@ switch (nvram['t_model_name']) {
 	case 'Netgear WNDR3400v2':
 	case 'Netgear WNDR3400v3':
 	case 'Netgear R6300 V1':
-		COL_P0N = '3';
-		COL_P1N = '2';
-		COL_P2N = '1';
-		COL_P3N = '0';
-		COL_P4N = '4';
+		COL_P0N = '4';
+		COL_P1N = '3';
+		COL_P2N = '2';
+		COL_P3N = '1';
+		COL_P4N = '0';
 		break;
 	case 'vlan-testid3':
 	case 'Asus RT-N10U':
@@ -179,26 +177,26 @@ switch (nvram['t_model_name']) {
 	case 'Netgear WNR3500L/U/v2':
 	case 'Netgear WNR3500L v2':
 	case 'Tenda N60':
+	case 'Linksys WRT160N': /* WRT160Nv3 */
 	case 'Linksys E2000':
-		COL_P0N = '4';
-		COL_P1N = '3';
-		COL_P2N = '2';
-		COL_P3N = '1';
-		COL_P4N = '0';
+		COL_P0N = '0';
+		COL_P1N = '4';
+		COL_P2N = '3';
+		COL_P3N = '2';
+		COL_P4N = '1';
 		break;
 	default:
-		COL_P0N = '1';
-		COL_P1N = '2';
-		COL_P2N = '3';
-		COL_P3N = '4';
-		COL_P4N = '0';
+		COL_P0N = '0';
+		COL_P1N = '1';
+		COL_P2N = '2';
+		COL_P3N = '3';
+		COL_P4N = '4';
 		unknown_router = 1;
 		break;
 /* K2.6 Routers from Tomatoanon needing port order info from router case
 	case 'CW-5356U':
 	case 'ZTE H218N':
 	case 'ZTE ZXV10 H618B':
-	case 'Linksys WRT160N':
 	case 'Linksys WRT300N v1':
 	case 'D-Link DIR-627':
 	case 'Netcore NI360/Q3':
@@ -250,11 +248,12 @@ if (port_vlan_supported) {
 /* MULTIWAN-END */
 				], prefix: '<div class="centered">', suffix: '<\/div>' }]);
 
-		this.headerSet(['<br><br>VLAN', '<br><br>VID', '<div id="vport_0"><img src="eth_off.gif" id="eth_off_1" alt=""><\/div>1', '<br>Tag<br>1',
-		                '<div id="vport_1"><img src="eth_off.gif" id="eth_off_2" alt=""><\/div>2', '<br>Tag<br>2',
-		                '<div id="vport_2"><img src="eth_off.gif" id="eth_off_3" alt=""><\/div>3', '<br>Tag<br>3',
-		                '<div id="vport_3"><img src="eth_off.gif" id="eth_off_4" alt=""><\/div>4', '<br>Tag<br>4',
-		                '<div id="vport_4"><img src="eth_off.gif" id="eth_off_5" alt=""><\/div>WAN', '<br>Tag<br>WAN',
+		this.headerSet(['<br><br>VLAN', '<br><br>VID',
+		                '<div id="vport_0"><img src="eth_off.gif" id="eth_off_1" alt=""><\/div>WAN', '<br>Tag<br>WAN',
+		                '<div id="vport_1"><img src="eth_off.gif" id="eth_off_2" alt=""><\/div>1', '<br>Tag<br>1',
+		                '<div id="vport_2"><img src="eth_off.gif" id="eth_off_3" alt=""><\/div>2', '<br>Tag<br>2',
+		                '<div id="vport_3"><img src="eth_off.gif" id="eth_off_4" alt=""><\/div>3', '<br>Tag<br>3',
+		                '<div id="vport_4"><img src="eth_off.gif" id="eth_off_5" alt=""><\/div>4', '<br>Tag<br>4',
 		                '<br>Default<br>VLAN', 'Ethernet to<br>bridge<br>mapping']);
 
 		vlg.populate();
@@ -394,39 +393,39 @@ REMOVE-END */
 		if (!v_range(f[COL_MAP], quiet, 0, 4094))
 			valid = 0;
 
-		if ((trunk_vlan_supported) && (f[COL_P0].checked == 1))
+		if ((trunk_vlan_supported) && (f[COL_P0].checked == 1) && (f[COL_VID_DEF].checked != 1))
 			f[COL_P0T].disabled = 0;
 		else {
 			f[COL_P0T].disabled = 1;
 			f[COL_P0T].checked = 0;
 		}
-		if ((trunk_vlan_supported) && (f[COL_P1].checked == 1))
+		if ((trunk_vlan_supported) && (f[COL_P1].checked == 1) && (f[COL_VID_DEF].checked != 1))
 			f[COL_P1T].disabled = 0;
 		else {
 			f[COL_P1T].disabled = 1;
 			f[COL_P1T].checked = 0;
 		}
-		if ((trunk_vlan_supported) && (f[COL_P2].checked == 1))
+		if ((trunk_vlan_supported) && (f[COL_P2].checked == 1) && (f[COL_VID_DEF].checked != 1))
 			f[COL_P2T].disabled = 0;
 		else {
 			f[COL_P2T].disabled = 1;
 			f[COL_P2T].checked = 0;
 		}
-		if ((trunk_vlan_supported) && (f[COL_P3].checked == 1))
+		if ((trunk_vlan_supported) && (f[COL_P3].checked == 1) && (f[COL_VID_DEF].checked != 1))
 			f[COL_P3T].disabled = 0;
 		else {
 			f[COL_P3T].disabled = 1;
 			f[COL_P3T].checked = 0;
 		}
-		if ((trunk_vlan_supported) && (f[COL_P4].checked == 1))
+		if ((trunk_vlan_supported) && (f[COL_P4].checked == 1) && (f[COL_VID_DEF].checked != 1))
 			f[COL_P4T].disabled = 0;
 		else {
 			f[COL_P4T].disabled = 1;
 			f[COL_P4T].checked = 0;
 		}
 
-		/* Modifications to enable Native VLAN support (allow one untagged vlan per port) by default */
-		var err_vlan = 'Only one untagged VLAN per port is allowed (Native VLAN)';
+		/* Only Default VLAN is allowed to be untagged */
+		var err_vlan = 'Only Default VLAN is allowed to be untagged';
 		if ((f[COL_P0].checked == 1) && (this.countElem(COL_P0, 1) > 0)) {
 			if (((this.countElem(COL_P0,1)-1) >= this.countElem(COL_P0T,1)) && (f[COL_P0T].checked == 0)) {
 				ferror.set(f[COL_P0T], err_vlan, quiet);
@@ -533,15 +532,15 @@ REMOVE-END */
 		return [data[COL_VID],
 			((data[COL_MAP].toString() == '') || (data[COL_MAP].toString() == '0')) ? (data[COL_VID] *1 ).toString() : data[COL_MAP].toString(),
 			(data[COL_P0].toString() != '0') ? '⭐' : '',
-			(data[COL_P0T].toString() != '0') ? '🔰' : '',
+			((data[COL_P0T].toString() != '0') && (data[COL_VID_DEF].toString() == '0')) ? '🔰' : '',
 			(data[COL_P1].toString() != '0') ? '⭐' : '',
-			(data[COL_P1T].toString() != '0') ? '🔰' : '',
+			((data[COL_P1T].toString() != '0') && (data[COL_VID_DEF].toString() == '0')) ? '🔰' : '',
 			(data[COL_P2].toString() != '0') ? '⭐' : '',
-			(data[COL_P2T].toString() != '0') ? '🔰' : '',
+			((data[COL_P2T].toString() != '0') && (data[COL_VID_DEF].toString() == '0')) ? '🔰' : '',
 			(data[COL_P3].toString() != '0') ? '⭐' : '',
-			(data[COL_P3T].toString() != '0') ? '🔰' : '',
+			((data[COL_P3T].toString() != '0') && (data[COL_VID_DEF].toString() == '0')) ? '🔰' : '',
 			(data[COL_P4].toString() != '0') ? '⭐' : '',
-			(data[COL_P4T].toString() != '0') ? '🔰' : '',
+			((data[COL_P4T].toString() != '0') && (data[COL_VID_DEF].toString() == '0')) ? '🔰' : '',
 			(data[COL_VID_DEF].toString() != '0') ? '🚩' : '',
 			['','WAN0 bridge','LAN0 (br0)','LAN1 (br1)','LAN2 (br2)','LAN3 (br3)','WAN1 bridge'
 /* MULTIWAN-BEGIN */
@@ -554,15 +553,15 @@ REMOVE-END */
 		return [data[COL_VID],
 			data[COL_MAP],
 			(data[COL_P0] != 0) ? 'checked' : '',
-			(data[COL_P0T] != 0) ? 'checked' : '',
+			((data[COL_P0T] != 0) && (data[COL_VID_DEF].toString() == '0')) ? 'checked' : '',
 			(data[COL_P1] != 0) ? 'checked' : '',
-			(data[COL_P1T] != 0) ? 'checked' : '',
+			((data[COL_P1T] != 0) && (data[COL_VID_DEF].toString() == '0')) ? 'checked' : '',
 			(data[COL_P2] != 0) ? 'checked' : '',
-			(data[COL_P2T] != 0) ? 'checked' : '',
+			((data[COL_P2T] != 0) && (data[COL_VID_DEF].toString() == '0')) ? 'checked' : '',
 			(data[COL_P3] != 0) ? 'checked' : '',
-			(data[COL_P3T] != 0) ? 'checked' : '',
+			((data[COL_P3T] != 0) && (data[COL_VID_DEF].toString() == '0')) ? 'checked' : '',
 			(data[COL_P4] != 0) ? 'checked' : '',
-			(data[COL_P4T] != 0) ? 'checked' : '',
+			((data[COL_P4T] != 0) && (data[COL_VID_DEF].toString() == '0')) ? 'checked' : '',
 			(data[COL_VID_DEF] != 0) ? 'checked' : '',
 			data[COL_BRI]];
 	}
@@ -749,23 +748,23 @@ function save() {
 	for (var i = 0; i < d.length; ++i) {
 		var p = '';
 		p += (d[i][COL_P0].toString() != '0') ? COL_P0N : '';
-		p += ((trunk_vlan_supported) && (d[i][COL_P0T].toString() != '0')) ? 't' : '';
+		p += ((trunk_vlan_supported) && (d[i][COL_P0T].toString() != '0') && (f[COL_VID_DEF].checked != 1)) ? 't' : '';
 		p += trailingSpace(p);
 
 		p += (d[i][COL_P1].toString() != '0') ? COL_P1N : '';
-		p += ((trunk_vlan_supported) && (d[i][COL_P1T].toString() != '0')) ? 't' : '';
+		p += ((trunk_vlan_supported) && (d[i][COL_P1T].toString() != '0') && (f[COL_VID_DEF].checked != 1)) ? 't' : '';
 		p += trailingSpace(p);
 
 		p += (d[i][COL_P2].toString() != '0') ? COL_P2N : '';
-		p += ((trunk_vlan_supported) && (d[i][COL_P2T].toString() != '0')) ? 't' : '';
+		p += ((trunk_vlan_supported) && (d[i][COL_P2T].toString() != '0') && (f[COL_VID_DEF].checked != 1)) ? 't' : '';
 		p += trailingSpace(p);
 
 		p += (d[i][COL_P3].toString() != '0') ? COL_P3N : '';
-		p += ((trunk_vlan_supported) && (d[i][COL_P3T].toString() != '0')) ? 't' : '';
+		p += ((trunk_vlan_supported) && (d[i][COL_P3T].toString() != '0') && (f[COL_VID_DEF].checked != 1)) ? 't' : '';
 		p += trailingSpace(p);
 
 		p += (d[i][COL_P4].toString() != '0') ? COL_P4N : '';
-		p += ((trunk_vlan_supported) && (d[i][COL_P4T].toString() != '0')) ? 't' : '';
+		p += ((trunk_vlan_supported) && (d[i][COL_P4T].toString() != '0') && (f[COL_VID_DEF].checked != 1)) ? 't' : '';
 		p += trailingSpace(p);
 
 		p += (d[i][COL_VID_DEF].toString() != '0') ? (SWITCH_INTERNAL_PORT+'*') : SWITCH_INTERNAL_PORT;
