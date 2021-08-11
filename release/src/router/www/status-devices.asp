@@ -51,8 +51,10 @@ ref.refresh = function(text) {
 	dg.populate();
 	dg.resort();
 	for (var uidx = 0; uidx < wl_ifaces.length; ++uidx) {
-		if (wl_sunit(uidx) < 0 && E('noise'+uidx) != null)
+		if (wl_sunit(uidx) < 0 && E('noise'+uidx) != null) {
 			elem.setInnerHTML(E('noise'+uidx), wlnoise[uidx]);
+			setNoiseBar(uidx, wlnoise[uidx]);
+		}
 	}
 }
 
@@ -65,7 +67,7 @@ var dg = new TomatoGrid();
 
 dg.setup = function() {
 	this.init('dev-grid', 'sort');
-	this.headerSet(['Interface','Media','MAC Address','IP Address','Name','RSSI','Quality &nbsp;','TX/RX<br>Rate','Lease&nbsp;']);
+	this.headerSet(['Interface','Media','MAC Address','IP Address','Hostname','RSSI','Quality &nbsp;','TX/RX<br>Rate','Lease&nbsp;']);
 	this.populate();
 	this.sort(3);
 }
@@ -186,7 +188,65 @@ dg.populate = function() {
 		e.name = a[0];
 	}
 
-	/* [ "IP", "MAC", "br0/wwan0", "name" ] */
+/* IPV6-BEGIN */
+	/* IPv6 step 1/2 - catch wireless devices: sync IPv4/IPv6 Infos with matching mac addr (extra line/entry for IPv6 with mac, ipv6, name and lease and synced infos) */
+	for (i = list.length - 1; i >= 0; --i) {
+		e = list[i];
+		for (i2 = list.length - 1; i2 >= 0; --i2) {
+			e2 = list[i2];
+			if ((e.mac == e2.mac) && (e.ip != e2.ip) && (e.mode != 'wds') && (e2.mode != 'wds')) { /* match mac, and do not touch wds device */
+
+				/* sync infos but check first */
+				if ((e.mode != '') && (e2.mode == ''))
+					e2.mode = e.mode;
+				else if ((e2.mode != '') && (e.mode == ''))
+					e.mode = e2.mode;
+
+				if ((e.ifname != '') && (e2.ifname == ''))
+					e2.ifname = e.ifname;
+				else if ((e2.ifname != '') && (e.ifname == ''))
+					e.ifname = e2.ifname;
+
+				if ((e.ifstatus != '') && (e2.ifstatus == ''))
+					e2.ifstatus = e.ifstatus;
+				else if ((e2.ifstatus != '') && (e.ifstatus == ''))
+					e.ifstatus = e2.ifstatus;
+
+				if ((e.unit != '') && (e2.unit == ''))
+					e2.unit = e.unit;
+				else if ((e2.unit != '') && (e.unit == ''))
+					e.unit = e2.unit;
+
+				if ((e.name != '') && (e2.name == ''))
+					e2.name = e.name;
+				else if ((e2.name != '') && (e.name == ''))
+					e.name = e2.name;
+
+				if ((e.freq != '') && (e2.freq == ''))
+					e2.freq = e.freq;
+				else if ((e2.freq != '') && (e.freq == ''))
+					e.freq = e2.freq;
+
+				if ((e.ssid != '') && (e2.ssid == ''))
+					e2.ssid = e.ssid;
+				else if ((e2.ssid != '') && (e.ssid == ''))
+					e.ssid = e2.ssid;
+
+				if ((e.rssi != '') && (e2.rssi == ''))
+					e2.rssi = e.rssi;
+				else if ((e2.rssi != '') && (e.rssi == ''))
+					e.rssi = e2.rssi;
+
+				if ((e.txrx != '') && (e2.txrx == ''))
+					e2.txrx = e.txrx;
+				else if ((e2.txrx != '') && (e.txrx == ''))
+					e.txrx = e2.txrx;
+			}
+		}
+	}
+/* IPV6-END */
+
+	/* [ "IP", "MAC", "br0/wwan0", "name" ] (Note: need to catch IPv6 devices later) */
 	for (i = arplist.length - 1; i >= 0; --i) {
 		a = arplist[i];
 		if ((e = get(a[1], a[0])) != null) {
@@ -292,43 +352,33 @@ dg.populate = function() {
 	}
 
 /* IPV6-BEGIN */
-	/* step 2: sync IPv4 Infos to IPv6 with matching mac addr (extra line/entry for IPv6 with mac, ipv6, name and lease and synced IPv4 infos) */
+	/* step 2: IPv6 step 2/2 - catch wired devices: sync IPv4/IPv6 Infos with matching mac addr */
 	for (i = list.length - 1; i >= 0; --i) {
 		e = list[i];
 		for (i2 = list.length - 1; i2 >= 0; --i2) {
 			e2 = list[i2];
-			if ((e.mac == e2.mac) && (e.ip != e2.ip) && (e.mode != 'wds') && (e2.mode != 'wds')) { /* match mac, and don't touch wds device */
-				if ((e2.bridge == '') || (e2.lan == '')) { /* check infos before sync */
+			if ((e.mac == e2.mac) && (e.ip != e2.ip) && (e.mode != 'wds') && (e2.mode != 'wds')) { /* match mac, and do not touch wds device */
+
+				/* sync infos but check first */
+				if ((e.ifname != '') && (e2.ifname == ''))
 					e2.ifname = e.ifname;
-					e2.ifstatus = e.ifstatus;
-					e2.bridge = e.bridge;
-					e2.freq = e.freq;
-					e2.ssid = e.ssid;
-					e2.mode = e.mode;
-					e2.unit = e.unit;
-					e2.rssi = e.rssi;
-					e2.qual = e.qual;
-					e2.txrx = e.txrx;
-					e2.lan = e.lan;
-				}
-				else {
+				else if ((e2.ifname != '') && (e.ifname == ''))
 					e.ifname = e2.ifname;
-					e.ifstatus = e2.ifstatus;
-					e.bridge = e2.bridge;
-					e.freq = e2.freq;
-					e.ssid = e2.ssid;
-					e.mode = e2.mode;
-					e.unit = e2.unit;
-					e.rssi = e2.rssi;
-					e.qual = e2.qual;
-					e.txrx = e2.txrx;
-					e.lan = e2.lan;
-				}
-				/* special case: name can be empty for IPv4 OR IPv6 - sync */
+
 				if ((e.name != '') && (e2.name == ''))
 					e2.name = e.name;
 				else if ((e2.name != '') && (e.name == ''))
 					e.name = e2.name;
+
+				if ((e.bridge != '') && (e2.bridge == ''))
+					e2.bridge = e.bridge;
+				else if ((e2.bridge != '') && (e.bridge == ''))
+					e.bridge = e2.bridge;
+
+				if ((e.lan != '') && (e2.lan == ''))
+					e2.lan = e.lan;
+				else if ((e2.lan != '') && (e.lan == ''))
+					e.lan = e2.lan;
 			}
 		}
 	}
@@ -385,7 +435,7 @@ dg.populate = function() {
 
 		a = '';
 		if (e.freq != '') /* WL */
-			a = e.ifstatus+' '+e.ifname+(e.ifname.indexOf('.') == -1 ? ' (wl'+e.unit+')' : '')+c;
+			a = e.ifstatus+' '+(e.ifname.indexOf('.') == -1 ? e.ifname+' (wl'+e.unit+')' : '('+e.ifname+')')+c;
 		else if (e.ifname != '' && found_last == 0)
 			a = e.lan+e.wan+'('+e.ifname+')'+c;
 		else
@@ -506,6 +556,9 @@ function _deleteLease(ip, mac, wl) {
 }
 
 function deleteLease(a, ip, mac, wl) {
+	if (!confirm("Delete lease?"))
+		return;
+
 	if (xob)
 		return;
 
@@ -624,6 +677,25 @@ function tick() {
 	}
 }
 
+function setNoiseBar(i, lvl) {
+	var num;
+
+	if (lvl >= -69)
+		num = 1;
+	else if (lvl >= -75)
+		num = 2;
+	else if (lvl >= -81)
+		num = 3;
+	else if (lvl >= -87)
+		num = 4;
+	else if (lvl >= -93)
+		num = 5;
+	else
+		num = 6;
+
+	elem.setInnerHTML(E('noiseimg_'+i), '<img src="bar'+num+'.gif" id="barnoise_'+i+'" alt="">');
+}
+
 function verifyFields(f, c) {
 	if (discovery.running)
 		discovery.stop();
@@ -646,6 +718,12 @@ function verifyFields(f, c) {
 /* DISCOVERY-END */
 
 function earlyInit() {
+	for (var uidx = 0; uidx < wl_ifaces.length; ++uidx) {
+		if (wl_sunit(uidx) < 0 && E('noise'+uidx) != null) {
+			setNoiseBar(uidx, wlnoise[uidx]);
+		}
+	}
+
 	dg.setup();
 }
 
@@ -688,7 +766,7 @@ function init() {
 			if (nvram['wl'+u+'_radio'] == 1) {
 				if (wl_sunit(uidx) < 0) {
 					var a = wl_display_ifname(uidx);
-					f.push( { title: '<b>Noise Floor<\/b> '+a.substr(0, a.indexOf('/') - 1)+'&nbsp;<b>:<\/b>', prefix: '<span id="noise'+uidx+'">', custom: wlnoise[uidx], suffix: '<\/span>&nbsp;<small>dBm<\/small>' } );
+					f.push( { title: '<b>Noise Floor<\/b> '+a.substr(0, a.indexOf('/') - 1)+'&nbsp;<b>:<\/b>', prefix: '<span id="noiseimg_'+uidx+'"><\/span>&nbsp;<span id="noise'+uidx+'">', custom: wlnoise[uidx], suffix: '<\/span>&nbsp;<small>dBm<\/small>' } );
 				}
 			}
 		}
