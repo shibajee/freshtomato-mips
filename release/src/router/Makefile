@@ -298,11 +298,13 @@ obj-y += dnsmasq
 obj-y += mssl
 obj-y += httpd
 obj-y += wanuptime
+obj-$(TCONFIG_DNSCRYPT) += zlib
 obj-$(TCONFIG_DNSCRYPT) += libsodium
 obj-$(TCONFIG_DNSCRYPT) += dnscrypt
 obj-$(TCONFIG_SNMP) += snmp
 obj-$(TCONFIG_RAID) += mdadm
 obj-$(TCONFIG_NFS) += e2fsprogs
+obj-$(TCONFIG_NFS) += zlib
 obj-$(TCONFIG_NFS) += libevent
 obj-$(TCONFIG_NFS) += portmap
 obj-$(TCONFIG_NFS) += libnfsidmap
@@ -321,6 +323,7 @@ obj-$(TCONFIG_UPS) += apcupsd
 ifneq ($(TCONFIG_BCMARM)$(TCONFIG_NGINX),)
  obj-$(TCONFIG_SAMBASRV) += libiconv
 endif
+obj-$(TCONFIG_SAMBASRV) += zlib
 obj-$(TCONFIG_SAMBASRV) += samba3
 obj-$(TCONFIG_SAMBASRV) += wsdd2
 
@@ -465,7 +468,7 @@ ifeq ($(TCONFIG_BCMARM),y)
    export CONFIG_DHDAP=y
    export CFLAGS += -D__CONFIG_DHDAP__
    export DHDAP_USE_SEPARATE_CHECKOUTS := 1
-   export SRCBASE_DHD := $(SRCBASE)/../..
+   export SRCBASE_DHD := $(SRCBASE)/router
    export SRCBASE_FW  := $(SRCBASE)/../../43602/src
    PCIEFD_TARGETS_LIST	:= 43602a1-roml
 
@@ -1412,8 +1415,8 @@ iptables-1.8.x/stamp-h1:
 		PKG_CONFIG_PATH="$(PKG_CONFIG_PATH):$(TOP)/libnfnetlink$(if $(TCONFIG_CONNTRACK_TOOL),:$(TOP)/libnetfilter_conntrack,)" \
 		$(CONFIGURE) --prefix=/usr --bindir=/usr/sbin --libdir=/usr/lib \
 			$(if $(TCONFIG_IPV6),--enable-ipv6,--disable-ipv6) \
-			--with-kernel=$(LINUXDIR) --disable-nftables \
-			--with-xt-lock-name=/var/lock/xtables.lock
+			--with-kernel=$(LINUXDIR) --with-xt-lock-name=/var/lock/xtables.lock \
+			--disable-nftables --disable-dependency-tracking
 	@touch $@
 
 iptables-1.8.x: iptables-1.8.x/stamp-h1
@@ -1843,8 +1846,8 @@ dropbear-clean:
 
 sqlite/stamp-h1:
 	cd sqlite && autoreconf -fsi && \
-		CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
-		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
+		CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS) -I$(TOP)/zlib/staged/usr/include -ffunction-sections -fdata-sections" \
+		LDFLAGS="-L$(TOP)/zlib/staged/usr/lib -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		$(CONFIGURE) --prefix=/usr --enable-shared --enable-static \
 			--disable-readline --disable-dynamic-extensions --enable-threadsafe
 	@touch $@
@@ -1938,10 +1941,11 @@ flac/stamp-h1:
 		CFLAGS="-Os $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
 		CPPFLAGS="-I$(TOP)/libogg/include -I$(LINUXDIR)/include -fPIC" \
 		LDFLAGS="-L$(TOP)/libogg/src/.libs -fPIC -ffunction-sections -fdata-sections -Wl,--gc-sections" \
-		$(CONFIGURE) --prefix='' --enable-shared --enable-static --disable-rpath \
-			--disable-doxygen-docs --disable-xmms-plugin --disable-cpplibs --disable-thorough-tests \
-			--without-libiconv-prefix --disable-altivec --disable-sse --disable-dependency-tracking \
-			--with-ogg=$(TOP)/libogg/src/.libs
+		$(CONFIGURE) --prefix='' --enable-shared --with-ogg=$(TOP)/libogg/src/.libs \
+			--disable-doxygen-docs --disable-examples --disable-xmms-plugin --disable-cpplibs \
+			--disable-oggtest --disable-thorough-tests --disable-stack-smash-protection \
+			--disable-sse --disable-altivec --disable-vsx --disable-avx --enable-debug=no \
+			--without-libiconv-prefix --disable-rpath --disable-dependency-tracking
 	@touch $@
 
 flac: flac/stamp-h1
@@ -2313,7 +2317,8 @@ nocat-clean:
 pcre/stamp-h1:
 	$(call patch_files,pcre)
 	cd pcre && autoreconf -fsi && \
-		CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/zlib/staged/usr/include -ffunction-sections -fdata-sections" \
+		LDFLAGS="-L$(TOP)/zlib/staged/usr/lib -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		$(CONFIGURE) --prefix=/usr --disable-dependency-tracking --enable-utf8 --enable-unicode-properties --disable-cpp
 	[ -d pcre/m4 ] || mkdir pcre/m4
 	@touch $@
@@ -2352,11 +2357,11 @@ libxml2: libxml2/stamp-h1
 	@$(MAKE) -C $@ DESTDIR=$(TOP)/libxml2/staged install
 
 libxml2-install:
-	install -D libxml2/.libs/libxml2.so.2.9.13 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.9.13
-	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.9.13
+	install -D libxml2/.libs/libxml2.so.2.9.14 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.9.14
+	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.9.14
 	cd $(INSTALLDIR)/libxml2/usr/lib && \
-		ln -sf libxml2.so.2.9.13 libxml2.so.2 && \
-		ln -sf libxml2.so.2.9.13 libxml2.so
+		ln -sf libxml2.so.2.9.14 libxml2.so.2 && \
+		ln -sf libxml2.so.2.9.14 libxml2.so
 
 libxml2-clean:
 	-@$(MAKE) -C libxml2 clean
@@ -2790,7 +2795,7 @@ libcurl/stamp-h1:
 	$(call patch_files,libcurl)
 	cd libcurl && autoreconf -fsi && \
 		CFLAGS="-Os -Wall -pipe -ffunction-sections -fdata-sections -fPIC \
-			$(if $(TCONFIG_BCMARM),-fno-strict-aliasing -fno-delete-null-pointer-checks -marm,-funit-at-a-time -Wno-pointer-sign \
+			$(if $(TCONFIG_BCMARM),-fno-strict-aliasing -fno-delete-null-pointer-checks -marm -march=armv7-a -mtune=cortex-a9,-funit-at-a-time -Wno-pointer-sign \
 				$(if $(TCONFIG_MIPSR2),-march=mips32r2 -mips32r2 -mtune=mips32r2,-march=mips32 -mips32 -mtune=mips32))" \
 		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC -I$(TOP)/$(OPENSSLDIR)/staged/usr/include" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC -L$(TOP)/$(OPENSSLDIR)/staged/usr/lib" \
@@ -3012,7 +3017,7 @@ endif
 	cd nfs-utils && ./autogen.sh && \
 		CPPFLAGS="-Os $(EXTRACFLAGS)" \
 		CFLAGS="-Os -Wall -fno-delete-null-pointer-checks -funit-at-a-time -pipe -ffunction-sections -fdata-sections \
-			$(if $(TCONFIG_BCMARM),-marm,$(if $(TCONFIG_MIPSR2),-march=mips32r2 -mips32r2 -mtune=mips32r2,-march=mips32 -mips32 -mtune=mips32)) \
+			$(if $(TCONFIG_BCMARM),-marm -march=armv7-a -mtune=cortex-a9,$(if $(TCONFIG_MIPSR2),-march=mips32r2 -mips32r2 -mtune=mips32r2,-march=mips32 -mips32 -mtune=mips32)) \
 			-I$(TOP)/libevent/staged/usr/local/include \
 			-I$(TOP)/libnfsidmap/staged/usr/include -ffunction-sections -fdata-sections" \
 		LDFLAGS="-L$(TOP)/libevent/staged/usr/local/lib \
@@ -3119,9 +3124,10 @@ apcupsd/stamp-h1:
 		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 		CPPFLAGS="-Os -Wall -ffunction-sections -fdata-sections" \
 		LDFLAGS="-L$(TOOLCHAIN)/lib -ffunction-sections -fdata-sections -Wl,--gc-sections" \
-		$(CONFIGURE) --prefix=/usr --without-x --enable-usb --disable-pcnet --enable-cgi \
-			--disable-lgd --enable-net --sysconfdir=/usr/local/apcupsd --bindir=/bin \
-			--disable-dumb --disable-snmp --with-cgi-bin=/www/apcupsd --with-serial-dev=
+		$(CONFIGURE) --prefix=/usr --bindir=/bin --sysconfdir=/etc/apcupsd --with-cgi-bin=/www/apcupsd \
+			--enable-usb --enable-cgi --disable-lgd --enable-net \
+			--disable-dumb --without-x --with-serial-dev= \
+			$(if $(TCONFIG_AIO),--enable-pcnet --enable-snmp,--disable-pcnet --disable-snmp)
 	@touch $@
 
 apcupsd: apcupsd/stamp-h1
@@ -3132,6 +3138,9 @@ apcupsd-install:
 	$(MAKE) -C apcupsd DESTDIR=$(INSTALLDIR)/apcupsd install
 	@rm -rf $(INSTALLDIR)/apcupsd/sbin/apctest
 	@rm -rf $(INSTALLDIR)/apcupsd/www/apcupsd/ups*.cgi
+	@mkdir -p $(TARGETDIR)/rom/etc/apcupsd
+	@cp -f $(INSTALLDIR)/apcupsd/etc/apcupsd/* $(TARGETDIR)/rom/etc/apcupsd/
+	@rm -rf $(INSTALLDIR)/apcupsd/etc
 	$(STRIP) $(INSTALLDIR)/apcupsd/sbin/*
 	$(STRIP) $(INSTALLDIR)/apcupsd/www/apcupsd/*
 	@mkdir -p $(INSTALLDIR)/apcupsd/usr/bin
@@ -3165,8 +3174,8 @@ libsodium-clean:
 dnscrypt/stamp-h1:
 	cd dnscrypt && autoreconf && \
 		CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libsodium/src/libsodium/include -ffunction-sections -fdata-sections -fPIC" \
-		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libsodium/src/libsodium/include -ffunction-sections -fdata-sections" \
-		LDFLAGS="-Wl,--gc-sections -L$(TOP)/libsodium/src/libsodium/.libs" \
+		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libsodium/src/libsodium/include -I$(TOP)/zlib/staged/usr/include -ffunction-sections -fdata-sections" \
+		LDFLAGS="-Wl,--gc-sections -L$(TOP)/libsodium/src/libsodium/.libs -L$(TOP)/zlib/staged/usr/lib" \
 		$(CONFIGURE) --prefix=/usr --disable-ssp --disable-dependency-tracking
 	@touch $@
 
