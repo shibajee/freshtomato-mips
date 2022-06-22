@@ -86,6 +86,11 @@ ifneq ($(TCONFIG_NTFS),y)
 	sed -i $(INSTALLDIR)/www/nas-usb.asp -e "/NTFS-BEGIN/,/NTFS-END/d"
 endif
 
+# Only include sd/mmc card support if MICROSD is configured in.
+ifneq ($(TCONFIG_MICROSD),y)
+	sed -i $(INSTALLDIR)/www/nas-usb.asp -e "/MICROSD-BEGIN/,/MICROSD-END/d"
+endif
+
 # Only include the FTP pages if FTP Server is configured in.
 ifneq ($(TCONFIG_FTP),y)
 	rm -f $(INSTALLDIR)/www/nas-ftp.asp
@@ -484,6 +489,7 @@ endif
 		-e "/DNSSEC-BEGIN/d"	-e "/DNSSEC-END/d" \
 		-e "/STORSEC-BEGIN/d"	-e "/STORSEC-END/d" \
 		-e "/TOR-BEGIN/d"	-e "/TOR-END/d" \
+		-e "/MICROSD-BEGIN/d"	-e "/MICROSD-END/d" \
 		-e "/TINC-BEGIN/d"	-e "/TINC-END/d" \
 		-e "/MULTIWAN-BEGIN/d"	-e "/MULTIWAN-END/d" \
 		-e "/DUALWAN-BEGIN/d"	-e "/DUALWAN-END/d" \
