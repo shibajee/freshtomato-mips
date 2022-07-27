@@ -334,6 +334,7 @@ const defaults_t defaults[] = {
 #ifdef TCONFIG_IPV6
 	/* IPv6 parameters */
 	{ "ipv6_service",		""				},	// [''|native|native-pd|6to4|sit|other]
+	{ "ipv6_duid_type",		"3"				},	/* see RFC8415 Section 11; DUID-LLT = 1, DUID-EN = 2, DUID-LL = 3 (default), DUID-UUID = 4 */	
 	{ "ipv6_prefix",		""				},	// The global-scope IPv6 prefix to route/advertise
 	{ "ipv6_prefix_length",		"64"				},	// The bit length of the prefix. Used by dhcp6c. For radvd, /64 is always assumed.
 	{ "ipv6_rtr_addr",		""				},	// defaults to $ipv6_prefix::1
@@ -706,7 +707,6 @@ const defaults_t defaults[] = {
 	{ "routes_static",		""				},
 	{ "dhcp_routes",		"1"				},
 	{ "force_igmpv2",		"0"				},
-	{ "wk_mode",			"gateway"			},	// Network mode [gateway|router]
 #ifdef TCONFIG_ZEBRA
 	{ "dr_setting",			"0"				},	// [ Disable | WAN | LAN | Both ]
 	{ "dr_lan_tx",			"0"				},	// Dynamic-Routing LAN out
@@ -1317,7 +1317,7 @@ const defaults_t defaults[] = {
 #endif
 
 #ifdef TCONFIG_TINC
-	{"tinc_wanup",			"0"				},
+	{"tinc_enable",			"0"				},
 	{"tinc_name",			""				},
 	{"tinc_devicetype",		"tun"				},	// tun, tap
 	{"tinc_mode",			"switch"			},	// switch, hub
@@ -1354,7 +1354,7 @@ const defaults_t defaults[] = {
 	{ "bt_incomplete",		"1"				},
 	{ "bt_autoadd",			"1"				},
 	{ "bt_settings",		"down_dir"			},
-	{ "bt_settings_custom",		"/tmp/btclient"			},
+	{ "bt_settings_custom",		"/etc/transmission"		},
 	{ "bt_rpc_enable",		"1"				},
 	{ "bt_rpc_wan",			"0"				},
 	{ "bt_auth",			"1"				},
