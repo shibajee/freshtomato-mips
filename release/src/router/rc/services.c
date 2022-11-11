@@ -98,7 +98,7 @@ void start_dnsmasq_wet()
 	char lanN_ifname[] = "lanXX_ifname";
 
 	if ((f = fopen(DNSMASQ_CONF, "w")) == NULL) {
-		perror(DNSMASQ_CONF);
+		logerr(__FUNCTION__, __LINE__, DNSMASQ_CONF);
 		return;
 	}
 
@@ -188,7 +188,7 @@ void start_dnsmasq()
 #endif /* TCONFIG_BCMWL6 */
 
 	if ((f = fopen(DNSMASQ_CONF, "w")) == NULL) {
-		perror(DNSMASQ_CONF);
+		logerr(__FUNCTION__, __LINE__, DNSMASQ_CONF);
 		return;
 	}
 
@@ -778,7 +778,7 @@ void start_stubby(void)
 	}
 
 	if ((fp = fopen(stubby_config, "w")) == NULL) {
-		perror(stubby_config);
+		logerr(__FUNCTION__, __LINE__, stubby_config);
 		return;
 	}
 
@@ -897,7 +897,7 @@ void generate_mdns_config(void)
 
 	/* generate avahi configuration file */
 	if (!(fp = fopen(avahi_config, "w"))) {
-		perror(avahi_config);
+		logerr(__FUNCTION__, __LINE__, avahi_config);
 		return;
 	}
 
@@ -1151,7 +1151,7 @@ void dns_to_resolv(void)
 			fclose(f);
 		}
 		else {
-			perror(dmresolv);
+			logerr(__FUNCTION__, __LINE__, dmresolv);
 			return;
 		}
 		umask(m);
@@ -1522,7 +1522,7 @@ void start_upnp(void)
 	}
 
 	if ((f = fopen(UPNP_CONFIG, "w")) == NULL) {
-		perror(UPNP_CONFIG);
+		logerr(__FUNCTION__, __LINE__, UPNP_CONFIG);
 		return;
 	}
 
@@ -1708,7 +1708,7 @@ void start_zebra(void)
 	f_write(ZEBRA_CONF, NULL, 0, 0, 0); /* blank */
 
 	if ((fp = fopen(RIPD_CONF, "w")) == NULL) {
-		perror(RIPD_CONF);
+		logerr(__FUNCTION__, __LINE__, RIPD_CONF);
 		return;
 	}
 
@@ -2073,7 +2073,7 @@ void start_igmp_proxy(void)
 		}
 	}
 	else {
-		perror(IGMP_CONF);
+		logerr(__FUNCTION__, __LINE__, IGMP_CONF);
 		return;
 	}
 
@@ -2174,17 +2174,17 @@ void start_ntpd(void)
 	 * ntpd as separate parameters. this code should continue to work if GUI is changed to only store 1 value in the NVRAM var
 	 */
 	if (ntp_updates_int >= 0) { /* -1 = never */
-		servers_len = strlen(nvram_safe_get("ntp_server") + 1);
+		servers_len = strlen(nvram_safe_get("ntp_server"));
 
 		/* allocating memory dynamically both so we don't waste memory, and in case of unanticipatedly long server name in nvram */
-		if ((servers = malloc(servers_len)) == NULL) {
+		if ((servers = malloc(servers_len + 1)) == NULL) {
 			logmsg(LOG_ERR, "ntpd: failed allocating memory, exiting");
 			return; /* just get out if we couldn't allocate memory */
 		}
-		memset(servers, 0, servers_len);
+		memset(servers, 0, servers_len + 1);
 
 		/* get the space separated list of ntp servers */
-		strlcpy(servers, nvram_safe_get("ntp_server"), servers_len);
+		strlcpy(servers, nvram_safe_get("ntp_server"), servers_len + 1);
 
 		/* put the servers into the ntp config file */
 		if ((f = fopen("/etc/ntp.conf", "w")) != NULL) {
@@ -2196,7 +2196,7 @@ void start_ntpd(void)
 			fclose(f);
 		}
 		else {
-			perror("/etc/ntp.conf");
+			logerr(__FUNCTION__, __LINE__, "/etc/ntp.conf");
 			return;
 		}
 
@@ -2400,7 +2400,7 @@ static void start_ftpd(int force)
 	mkdir_if_none(vsftpd_run);
 
 	if ((fp = fopen(vsftpd_conf, "w")) == NULL) {
-		perror(vsftpd_conf);
+		logerr(__FUNCTION__, __LINE__, vsftpd_conf);
 		return;
 	}
 
@@ -2415,7 +2415,7 @@ static void start_ftpd(int force)
 			fclose(f);
 		}
 		else {
-			perror(tmp);
+			logerr(__FUNCTION__, __LINE__, tmp);
 			return;
 		}
 	}
@@ -2438,7 +2438,7 @@ static void start_ftpd(int force)
 			fclose(f);
 		}
 		else {
-			perror(tmp);
+			logerr(__FUNCTION__, __LINE__, tmp);
 			return;
 		}
 
@@ -2527,7 +2527,7 @@ static void start_ftpd(int force)
 
 	/* prepare passwd file and default users */
 	if ((fp = fopen(vsftpd_passwd, "w")) == NULL) {
-		perror(vsftpd_passwd);
+		logerr(__FUNCTION__, __LINE__, vsftpd_passwd);
 		return;
 	}
 
@@ -2591,7 +2591,7 @@ static void start_ftpd(int force)
 				fclose(f);
 			}
 			else {
-				perror(tmp);
+				logerr(__FUNCTION__, __LINE__, tmp);
 				return;
 			}
 		}
@@ -2718,7 +2718,7 @@ static void start_media_server(int force)
 			fclose(f);
 		}
 		else {
-			perror(argv[2]);
+			logerr(__FUNCTION__, __LINE__, argv[2]);
 			return;
 		}
 	}
@@ -2993,7 +2993,7 @@ void exec_service(void)
 	const int A_START = 1;
 	const int A_STOP = 2;
 	const int A_RESTART = 1|2;
-	char buffer[128], buffer2[16];
+	char buffer[128], buffer2[16], buffer3[16];
 	char *service;
 	char *act;
 	char *next;
@@ -3394,12 +3394,12 @@ TOP:
 			start_zebra();
 #endif
 			for (i = 0; i < BRIDGE_COUNT; i++) {
-				memset(buffer, 0, sizeof(buffer));
-				snprintf(buffer, sizeof(buffer), (i == 0 ? "lan_ifname" : "lan%d_ifname"), i);
-				if ((i == 0) || (strcmp(nvram_safe_get(buffer), "") != 0)) {
-					memset(buffer2, 0, sizeof(buffer2));
-					snprintf(buffer2, sizeof(buffer2), (i == 0 ? "lan_stp" : "lan%d_stp"), i);
-					eval("brctl", "stp", nvram_safe_get(buffer), nvram_safe_get(buffer2));
+				memset(buffer2, 0, sizeof(buffer2));
+				snprintf(buffer2, sizeof(buffer2), (i == 0 ? "lan_ifname" : "lan%d_ifname"), i);
+				if ((i == 0) || (strcmp(nvram_safe_get(buffer2), "") != 0)) {
+					memset(buffer3, 0, sizeof(buffer3));
+					snprintf(buffer3, sizeof(buffer3), (i == 0 ? "lan_stp" : "lan%d_stp"), i);
+					eval("brctl", "stp", nvram_safe_get(buffer2), nvram_safe_get(buffer3));
 				}
 			}
 		}
@@ -3772,7 +3772,7 @@ static void do_service(const char *name, const char *action, int user)
 		else if (--n < 0)
 			break;
 
-		usleep(100 * 1000);
+		usleep(100 * 1000); /* microseconds => 0,1s  */
 	}
 
 	snprintf(s, sizeof(s), "%s-%s%s", name, action, (user ? "-c" : ""));
@@ -3794,7 +3794,7 @@ static void do_service(const char *name, const char *action, int user)
 		else if (--n < 0)
 			break;
 
-		usleep(100 * 1000);
+		usleep(100 * 1000); /* microseconds => 0,1s  */
 	}
 }
 
