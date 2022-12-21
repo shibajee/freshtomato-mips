@@ -1976,7 +1976,7 @@ flac/stamp-h1:
 		CFLAGS="-Os $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections --param max-inline-insns-single=3000 --param large-function-growth=500" \
 		CPPFLAGS="-I$(TOP)/libogg/include -I$(LINUXDIR)/include -fPIC --param max-inline-insns-single=3000 --param large-function-growth=500" \
 		LDFLAGS="-L$(TOP)/libogg/src/.libs -fPIC -ffunction-sections -fdata-sections -Wl,--gc-sections" \
-		$(CONFIGURE) --prefix='' --enable-shared --with-ogg=$(TOP)/libogg/src/.libs \
+		$(CONFIGURE) --prefix='' --enable-shared --enable-static --with-ogg=$(TOP)/libogg/src/.libs \
 			--disable-doxygen-docs --disable-examples --disable-cpplibs \
 			--disable-oggtest --disable-thorough-tests --disable-stack-smash-protection \
 			--disable-altivec --disable-vsx --disable-avx --enable-debug=no \
@@ -2424,11 +2424,11 @@ libpng: libpng/stamp-h1
 	@rm -f $(TOP)/libpng/staged/usr/lib/libpng12.la
 
 libpng-install:
-	install -D libpng/.libs/libpng16.so.16.38.0 $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.38.0
-	$(STRIP) $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.38.0
+	install -D libpng/.libs/libpng16.so.16.39.0 $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.39.0
+	$(STRIP) $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.39.0
 	cd $(INSTALLDIR)/libpng/usr/lib && \
-		ln -sf libpng16.so.16.38.0 libpng16.so && \
-		ln -sf libpng16.so.16.38.0 libpng16.so.16
+		ln -sf libpng16.so.16.39.0 libpng16.so && \
+		ln -sf libpng16.so.16.39.0 libpng16.so.16
 
 libpng-clean:
 	-@$(MAKE) -C libpng clean
