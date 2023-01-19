@@ -617,6 +617,7 @@ const defaults_t defaults[] = {
 #endif
 	{ "adblock_blacklist_custom",	""				},
 	{ "adblock_whitelist",		""				},
+	{ "adblock_logs",		"3"				},
 	{ "adblock_limit",		""				},
 	{ "adblock_path",		""				},
 #endif /* TCONFIG_HTTPS */
@@ -1067,6 +1068,8 @@ const defaults_t defaults[] = {
 	{ "ms_tivo",			"0"				},
 	{ "ms_stdlna",			"0"				},
 	{ "ms_sas",			"0"				},
+	{ "ms_autoscan",		"1"				},
+	{ "ms_custom",			""				},
 #endif
 
 #ifdef TCONFIG_SDHC
