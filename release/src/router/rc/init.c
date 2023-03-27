@@ -10561,7 +10561,16 @@ static void sysinit(void)
 	}
 #endif /* TCONFIG_BCMARM */
 
-	restore_defaults(); /* restore defaults if necessary */
+	restore_defaults(); /* restore (basic) defaults if necessary */
+	del_rstats_defaults(); /* remove rstats nvram values if feature is disabled! */
+	del_cstats_defaults(); /* remove cstats nvram values if feature is disabled! */
+#ifdef TCONFIG_FTP
+	del_ftp_defaults(); /* remove ftp nvram values if feature is disabled! */
+#endif /* TCONFIG_FTP */
+#ifdef TCONFIG_SNMP
+	del_snmp_defaults(); /* remove snmp nvram values if feature is disabled! */
+#endif /* TCONFIG_SNMP */
+	del_upnp_defaults(); /* remove upnp nvram values if feature is disabled! */
 	init_nvram();
 
 	set_jumbo_frame(); /* enable or disable jumbo_frame and set jumbo frame size */
