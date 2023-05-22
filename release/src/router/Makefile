@@ -1898,7 +1898,7 @@ zlib-clean:
 
 sqlite/stamp-h1:
 	cd sqlite && autoreconf -fsi && \
-		CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS) -fPIC -I$(TOP)/zlib/staged/usr/include -ffunction-sections -fdata-sections" \
+		CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS) -fPIC -std=gnu99 -I$(TOP)/zlib/staged/usr/include -ffunction-sections -fdata-sections" \
 		LDFLAGS="-L$(TOP)/zlib/staged/usr/lib -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		$(CONFIGURE) --prefix=/usr --enable-shared --enable-static \
 			--disable-readline --enable-dynamic-extensions=no --enable-threadsafe
@@ -2377,11 +2377,11 @@ libxml2: libxml2/stamp-h1
 	@$(MAKE) -C $@ DESTDIR=$(TOP)/libxml2/staged install
 
 libxml2-install:
-	install -D libxml2/.libs/libxml2.so.2.10.3 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.10.3
-	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.10.3
+	install -D libxml2/.libs/libxml2.so.2.11.3 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.11.3
+	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.11.3
 	cd $(INSTALLDIR)/libxml2/usr/lib && \
-		ln -sf libxml2.so.2.10.3 libxml2.so.2 && \
-		ln -sf libxml2.so.2.10.3 libxml2.so
+		ln -sf libxml2.so.2.11.3 libxml2.so.2 && \
+		ln -sf libxml2.so.2.11.3 libxml2.so
 
 libxml2-clean:
 	-@$(MAKE) -C libxml2 clean
