@@ -2,6 +2,8 @@
  * Tomato Firmware
  * Copyright (C) 2006-2010 Jonathan Zarate
  *
+ * Fixes/updates (C) 2018 - 2023 pedro
+ *
  */
 
 
@@ -555,6 +557,7 @@ static const nvset_t nvset_list[] = {
 	{ "ipv6_tun_mtu",		V_NUM				},	/* Tunnel MTU */
 	{ "ipv6_tun_ttl",		V_NUM				},	/* Tunnel TTL */
 	{ "ipv6_dns",			V_LENGTH(0, 40*3)		},	/* ip6 ip6 ip6 */
+	{ "ipv6_dns_lan",		V_LENGTH(0, 40*2)		},	/* ip6 ip6 */
 	{ "ipv6_6rd_prefix",		V_IPV6(0)			},
 	{ "ipv6_6rd_prefix_length",	V_RANGE(3, 127)			},
 	{ "ipv6_6rd_borderrelay",	V_IP				},
@@ -1822,7 +1825,7 @@ static void _execute_command(char *url, char *command, char *query, wofilter_t w
 		}
 	}
 
-	if ((f = fdopen(fe, "wb")) != NULL) {
+	if ((f = fdopen(fe, "wb"))) {
 		fprintf(f,
 			"#!/bin/sh\n"
 			"export REQUEST_METHOD=\"%s\"\n"
@@ -1854,7 +1857,7 @@ static void _execute_command(char *url, char *command, char *query, wofilter_t w
 	chmod(webExecFile, 0700);
 
 	if (query) {
-		if ((f = fdopen(fq, "wb")) != NULL) {
+		if ((f = fdopen(fq, "wb"))) {
 			fprintf(f, "%s\n", query);
 			fclose(f);
 		}
@@ -2145,7 +2148,7 @@ static int nv_wl_bwcap_chanspec(int idx, int unit, int subunit, void *param)
 		return 1;
 
 	memset(chan_spec, 0, sizeof(chan_spec));
-	strncpy(chan_spec, ch, sizeof(chan_spec));
+	strlcpy(chan_spec, ch, sizeof(chan_spec));
 	switch (atoi(nbw_cap)) {
 		case 0:
 			if (write)
@@ -2161,7 +2164,7 @@ static int nv_wl_bwcap_chanspec(int idx, int unit, int subunit, void *param)
 			if (write)
 				nvram_set(wl_nvname("bw_cap", unit, 0), "7");
 			if (*ch != '0')
-				strcpy(chan_spec + strlen(chan_spec), "/80");
+				strlcpy(chan_spec + strlen(chan_spec), "/80", sizeof(chan_spec));
 			break;
 	}
 	if (write)
@@ -2229,7 +2232,7 @@ static int save_variables(int write)
 		if ((p = webcgi_get(s)) != NULL) {
 			if (strlen(p) > 2048) {
 				memset(t, 0, sizeof(t));
-				strncpy(t, s, sizeof(s));
+				strlcpy(t, s, sizeof(t));
 				snprintf(s, sizeof(s), msgf, t);
 				resmsg_set(s);
 				return 0;
