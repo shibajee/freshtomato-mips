@@ -124,8 +124,10 @@ mwwatchdogRun() {
 				ckping
 			elif [ "$METHOD" -eq 2 ]; then
 				cktracert
+# BBT-BEGIN
 			else
 				ckcurl
+# BBT-END
 			fi
 
 			for IP in $IPLIST; do
@@ -188,8 +190,8 @@ cktracert() {
 	for IP in $IPLIST; do
 		RXBYTES1=$(cat /sys/class/net/$IFACE/statistics/rx_bytes 2>/dev/null)
 		# we need only send/receive few packages to be sure if connection works
-		traceroute -i $IFACE -n -w 1 -m 4 -q 1 -z 1 $IP &>/dev/null
-		usleep 200
+		traceroute -i $IFACE -n -w 1 -q 1 -z 1 $IP &>/dev/null
+		usleep 200000
 		RXBYTES2=$(cat /sys/class/net/$IFACE/statistics/rx_bytes 2>/dev/null)
 		[ "$RXBYTES2" -gt "$(($RXBYTES1 + $RXBYTES_MIN_DIFF))" ] && { RESULT=1; break; }
 	done
@@ -212,6 +214,7 @@ ckping() {
 	[ "$RESULT" -gt 0 ] && $DEBUG "ping test result for: $IFACE - OK" || $DEBUG "ping test result for: $IFACE - FAILED!"
 }
 
+# BBT-BEGIN
 ckcurl() {
 	local IP
 	local i=0
@@ -226,6 +229,7 @@ ckcurl() {
 
 	[ "$RESULT" -gt 0 ] && $DEBUG "curl test result for: $IFACE - OK" || $DEBUG "curl test result for: $IFACE - FAILED!"
 }
+# BBT-END
 
 mwwatchdogAdd() {
 	local CKTIME=$(NV mwan_cktime)

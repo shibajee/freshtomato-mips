@@ -6,6 +6,15 @@ body {
 	color: #000;
 }
 
+.alt-mode {
+	position: relative;
+	height: 100%;
+	width: 100%;
+	filter: brightness(80%) sepia(10%);
+	background-color: black;
+	background-image: none;
+}
+
 a {
 	text-decoration: none;
 	color: #af4141;
@@ -14,6 +23,10 @@ a {
 a:hover {
 	background: #BF6060;
 	color: #fff;
+}
+
+a:hover.status_devices {
+	background-color: inherit !important;
 }
 
 table {
@@ -239,7 +252,8 @@ ul.tabs a:hover,
 
 .tabs-bottom {
 	clear: both;
-	border-top: 12px solid #fff;
+	border-top: 12px solid;
+	opacity: 0;
 	padding: 0;
 }
 
