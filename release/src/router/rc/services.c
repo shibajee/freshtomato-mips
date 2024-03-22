@@ -31,7 +31,7 @@
  *
  * Modified for Tomato Firmware
  * Portions, Copyright (C) 2006-2009 Jonathan Zarate
- * Fixes/updates (C) 2018 - 2023 pedro
+ * Fixes/updates (C) 2018 - 2024 pedro
  *
  */
 
@@ -435,7 +435,7 @@ void start_dnsmasq()
 
 	/* instruct clients like Firefox to not auto-enable DoH */
 	if (nvram_get_int("dns_priv_override")) {
-		fprintf(f, "address=/use-application-dns.net/\n"
+		fprintf(f, "address=/use-application-dns.net/mask.icloud.com/mask-h2.icloud.com/\n"
 		           "address=/_dns.resolver.arpa/\n");
 	}
 
@@ -1283,8 +1283,7 @@ void start_irqbalance(void)
 	if (serialize_restart("irqbalance", 1))
 		return;
 
-	mkdir_if_none("/var/run/irqbalance");
-	ret = eval("irqbalance", "-t", "10");
+	ret = eval("irqbalance", "-t", "10", "-s", "/var/run/irqbalance.pid");
 
 	if (ret)
 		logmsg(LOG_ERR, "starting irqbalance failed ...");
@@ -1784,16 +1783,13 @@ void start_upnp(void)
 	char *lanip, *lanmask, *lanifname;
 	char br;
 
-	if (get_wan_proto() == WP_DISABLED)
+	enable = nvram_get_int("upnp_enable");
+
+	/* only if enabled and proto not disabled */
+	if ((enable == 0) || (get_wan_proto() == WP_DISABLED))
 		return;
 
 	if (serialize_restart("miniupnpd", 1))
-		return;
-
-	enable = nvram_get_int("upnp_enable");
-
-	/* only if enabled */
-	if (enable == 0)
 		return;
 
 	add_upnp_defaults(); /* backup: check nvram! */
@@ -2552,6 +2548,39 @@ int ntpd_synced_main(int argc, char *argv[])
 #endif
 	}
 
+	FILE *file;
+	char message[300];
+	char *stratum = safe_getenv("stratum");
+	char *offset = safe_getenv("offset");
+	char *freq_drift_ppm = safe_getenv("freq_drift_ppm");
+	char *poll_interval = safe_getenv("poll_interval");
+	char *server_hostname = safe_getenv("server_hostname");
+	char *server_ip = safe_getenv("server_ip");
+	char *discipline_jitter = safe_getenv("discipline_jitter");
+
+	snprintf(message, sizeof(message), "Server: %s (%s)\n"
+					   "Poll Interval: %ss\n"
+					   "Stratum: %s\n"
+					   "Offset: %ss\n"
+					   "Jitter: %ss\n"
+					   "Frequency: %sppm\n",
+					    server_ip, server_hostname,
+					    poll_interval,
+					    stratum,
+					    offset,
+					    discipline_jitter,
+					    freq_drift_ppm);
+
+	int lock = file_lock("ntpd");
+
+	if (!(file = fopen("/tmp/ntpd", "w"))) {
+		file_unlock(lock);
+		return 1;
+	}
+
+	fprintf(file,"%s", message);
+	fclose(file);
+	file_unlock(lock);
 	return 0;
 }
 
@@ -2646,7 +2675,7 @@ static void start_media_server(int force)
 	int port, https;
 	pid_t pid;
 	char *dbdir;
-	char *argv[] = { "minidlna", "-f", "/etc/minidlna.conf", "-r", NULL, NULL };
+	char *argv[] = { "minidlna", "-f", "/etc/minidlna.conf", "-r", "-P", "/var/run/minidlna.pid", NULL, NULL };
 	static int once = 1;
 	int ret, index = 4, i;
 	char *msi;
@@ -2686,7 +2715,7 @@ static void start_media_server(int force)
 			if (!(*dbdir))
 				dbdir = NULL;
 
-			mkdir_if_none(dbdir ? : "/var/run/minidlna");
+			mkdir_if_none(dbdir ? : "/var/lib/minidlna");
 
 			/* persistent ident (router's mac as serial) */
 			if (!ether_atoe(nvram_safe_get("lan_hwaddr"), ea))
@@ -2732,7 +2761,7 @@ static void start_media_server(int force)
 			           "%s\n",
 			           strlen(msi) ? msi : nvram_safe_get("lan_ifname"),
 			           (port < 0) || (port >= 0xffff) ? 0 : port, /* 0 - means random port (feature applied as minidlna patch) */
-			           dbdir ? : "/var/run/minidlna",
+			           dbdir ? : "/var/lib/minidlna",
 			           nvram_get_int("ms_tivo") ? "yes" : "no",
 			           nvram_get_int("ms_stdlna") ? "yes" : "no",
 			           https ? "s" : "", nvram_safe_get("lan_ipaddr"), nvram_safe_get(https ? "https_lanport" : "http_lanport"),
@@ -2787,6 +2816,36 @@ static void stop_media_server(void)
 	eval("rm", "-rf", "/var/run/minidlna");
 }
 #endif /* TCONFIG_MEDIA_SERVER */
+
+#ifdef TCONFIG_HAVEGED
+void start_haveged(void)
+{
+	pid_t pid;
+
+	if (serialize_restart("haveged", 1))
+		return;
+
+	char *cmd_argv[] = { "/usr/sbin/haveged",
+	                     "-r", "0",             /* 0 = run as daemon */
+	                     "-w", "1024",          /* write_wakeup_threshold [bits] */
+#ifdef TCONFIG_BCMARM /* it has to be checkd for all MIPS routers */
+	                     "-d", "32",            /* data cache size [KB] - fallback to 16 */
+	                     "-i", "32",            /* instruction cache size [KB] - fallback to 16 */
+#endif
+	                     NULL };
+
+	_eval(cmd_argv, NULL, 0, &pid);
+}
+
+void stop_haveged(void)
+{
+	if (serialize_restart("haveged", 0))
+		return;
+
+	if (pidof("haveged") > 0)
+		killall_tk_period_wait("haveged", 50);
+}
+#endif /* TCONFIG_HAVEGED */
 
 #ifdef TCONFIG_USB
 static void start_nas_services(void)
@@ -2881,6 +2940,9 @@ void start_services(void)
 {
 	static int once = 1;
 
+#ifdef TCONFIG_HAVEGED
+	start_haveged();
+#endif
 	if (once) {
 		once = 0;
 
@@ -3019,6 +3081,9 @@ void stop_services(void)
 #endif
 #ifdef TCONFIG_IRQBALANCE
 	stop_irqbalance();
+#endif
+#ifdef TCONFIG_HAVEGED
+	stop_haveged();
 #endif
 }
 
@@ -3178,6 +3243,14 @@ TOP:
 	if (strcmp(service, "irqbalance") == 0) {
 		if (act_stop) stop_irqbalance();
 		if (act_start) start_irqbalance();
+		goto CLEAR;
+	}
+#endif
+
+#ifdef TCONFIG_HAVEGED
+	if (strcmp(service, "haveged") == 0) {
+		if (act_stop) stop_haveged();
+		if (act_start) start_haveged();
 		goto CLEAR;
 	}
 #endif
@@ -3366,35 +3439,37 @@ TOP:
 
 	if (strcmp(service, "upgrade") == 0) {
 		if (act_start) {
+			nvram_set("g_upgrade", "1");
+
 			if (nvram_get_int("webmon_bkp"))
 				xstart("/usr/sbin/webmon_bkp", "hourly"); /* make a copy before upgrade */
 
-			nvram_set("g_upgrade", "1");
 			stop_sched();
 			stop_cron();
-			killall("rstats", SIGTERM);
-			killall("cstats", SIGTERM);
-#ifdef TCONFIG_USB
-			restart_nas_services(1, 0); /* Samba, FTP and Media Server */
-#endif
-#ifdef TCONFIG_ZEBRA
-			stop_zebra();
-#endif
-#ifdef TCONFIG_BT
-			stop_bittorrent();
-#endif
 #ifdef TCONFIG_NGINX
 			stop_mysql();
 			stop_nginx();
 #endif
+#ifdef TCONFIG_NFS
+			stop_nfs();
+#endif
+#ifdef TCONFIG_USB
+			restart_nas_services(1, 0); /* Samba, FTP and Media Server */
+#endif
+#ifdef TCONFIG_BT
+			stop_bittorrent();
+#endif
+#ifdef TCONFIG_NOCAT
+			stop_nocat();
+#endif
 #ifdef TCONFIG_TOR
 			stop_tor();
 #endif
-			stop_tomatoanon();
-#ifdef TCONFIG_IRQBALANCE
-			stop_irqbalance();
-#endif
+			stop_adblock();
+			killall("rstats", SIGTERM);
+			killall("cstats", SIGTERM);
 			killall("buttons", SIGTERM);
+			stop_upnp();
 			if (!nvram_get_int("remote_upgrade")) {
 				killall("xl2tpd", SIGTERM);
 				killall("pppd", SIGTERM);
@@ -3402,21 +3477,28 @@ TOP:
 				killall("udhcpc", SIGTERM);
 				stop_wan();
 			}
-			else
-				stop_ntpd();
+			stop_ntpd();
+			stop_tomatoanon();
+			remove_conntrack();
+#ifdef TCONFIG_ZEBRA
+			stop_zebra();
+#endif
+#ifdef TCONFIG_IRQBALANCE
+			stop_irqbalance();
+#endif
 #ifdef TCONFIG_MDNS
 			stop_mdns();
 #endif
+#ifdef TCONFIG_HAVEGED
+			stop_haveged();
+#endif
+			stop_jffs2();
 			stop_syslog();
+			sleep(1);
 #ifdef TCONFIG_USB
 			remove_storage_main(1);
 			stop_usb();
-#ifndef TCONFIG_USBAP
-			remove_usb_module();
-#endif
 #endif /* TCONFIG_USB */
-			remove_conntrack();
-			stop_jffs2();
 		}
 		goto CLEAR;
 	}
