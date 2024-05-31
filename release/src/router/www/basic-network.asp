@@ -24,18 +24,20 @@
 
 var sta_list = [];
 function refresh_sta_list() {
-	var u;
-	for (var uidx = 0; uidx < wl_ifaces.length; ++uidx) {
-		if (wl_sunit(uidx) < 0) {
-			u = wl_unit(uidx);
-			sta_list[u] = [];
-			sta_list[u][0] = 'wl'+u;
-			sta_list[u][1] = wl_display_ifname(uidx);
+	var u, wluidx, staidx = 0;
+	for (wluidx = 0; wluidx < wl_ifaces.length; ++wluidx) {
+		if (wl_sunit(wluidx) < 0) {
+			u = wl_unit(wluidx);
+			sta_list[staidx] = [];
+			sta_list[staidx][0] = 'wl'+u;
+			sta_list[staidx][1] = wl_display_ifname(wluidx);
+			staidx++; /* next one */
 		}
 	}
-	sta_list[u + 1] = [];
-	sta_list[u + 1][0] = '';
-	sta_list[u + 1][1] = 'Disabled';
+	/* And finally - Add Option "Disabled" */
+	sta_list[staidx] = [];
+	sta_list[staidx][0] = '';
+	sta_list[staidx][1] = 'Disabled';
 }
 
 var lg = new TomatoGrid();
@@ -1931,7 +1933,7 @@ function init() {
 					value: eval('nvram.wl'+u+'_nctrlsb') == 'none' ? 'lower' : eval('nvram.wl'+u+'_nctrlsb') },
 				null,
 				{ title: 'Security', name: 'wl'+u+'_security_mode', type: 'select',
-					options: [['disabled','Disabled'],['wep','WEP'],['wpa_personal','WPA Personal'],['wpa_enterprise','WPA Enterprise'],['wpa2_personal','WPA2 Personal'],['wpa2_enterprise','WPA2 Enterprise'],['wpaX_personal','WPA / WPA2 Personal'],['wpaX_enterprise','WPA / WPA2 Enterprise'],['radius','Radius']],
+					options: [['disabled','Disabled'],['wep','WEP (legacy)'],['wpa_personal','WPA Personal (deprecated)'],['wpa_enterprise','WPA Enterprise (deprecated)'],['wpa2_personal','WPA2 Personal'],['wpa2_enterprise','WPA2 Enterprise'],['wpaX_personal','WPA / WPA2 Personal (deprecated)'],['wpaX_enterprise','WPA / WPA2 Enterprise (deprecated)'],['radius','Radius']],
 					value: eval('nvram.wl'+u+'_security_mode') },
 				{ title: 'Encryption', indent: 2, name: 'wl'+u+'_crypto', type: 'select',
 					options: [['tkip','TKIP'],['aes','AES'],['tkip+aes','TKIP / AES']], value: eval('nvram.wl'+u+'_crypto') },

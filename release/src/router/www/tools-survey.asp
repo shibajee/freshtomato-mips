@@ -128,6 +128,12 @@ function redraw() {
 	drawBoard('ellipses5');
 }
 
+function recolor() {
+	colors = colors.sort(() => Math.random() - 0.5);
+	redraw();
+	doit();
+}
+
 function doit() {
 	fillstyle = E('fill-style').value;
 	ssidshow = E('ssid-show').value;
@@ -203,25 +209,25 @@ var sg = new TomatoGrid();
 
 sg.setup = function() {
 	this.init('survey-grid','sort');
-	this.headerSet(['Last Seen','RGB','SSID','BSSID','RSSI<br>dBm','Quality','Ctrl/Centr<br>Channel','Security','802.11']);
+	this.headerSet(['Last Seen','RGB','SSID','BSSID','RSSI<br>dBm','SNR<br>dB','Qual','Ctrl/Centr<br>Channel','Security','802.11']);
 	this.populate();
-	this.sort(5);
+	this.sort(4);
 }
 
 function drawNoise(board, style) {
 	var noise1, noise2, noise;
 	var canvas = E(board);
 	var ctx = canvas.getContext('2d');
-	if (wl0.radio.value == 1 && wl0.mode != 'sta' && board == 'ellipses2') {
+	if (wl0.radio.value == 1 && board == 'ellipses2') {
 		if (res0a !== null) noise = ((-wl0.noise - 10) * (canvas.height / 100) * (10 / vdiv));
 		var noiseV = Number(wl0.noise);
 	}
-	if (wl1.radio.value == 1 && wl1.mode != 'sta' && board == 'ellipses5') {
+	if (wl1.radio.value == 1 && board == 'ellipses5') {
 		res1 = String(res1).replace(/\\x0a/g, ',').match(/\d+/g);
 		if (res1a !== null) noise = ((-wl1.noise - 10) * (canvas.height / 100) * (10 / vdiv));
 		var noiseV = Number(wl1.noise);
 	}
-	if (wl2.radio.value == 1 && wl2.mode != 'sta' && board == 'ellipses5') {
+	if (wl2.radio.value == 1 && board == 'ellipses5') {
 		res2 = String(res2).replace(/\\x0a/g, ',').match(/\d+/g);
 		if (res2a !== null) noise = ((-wl2.noise - 10) * (canvas.height / 100) * (10 / vdiv));
 		var noiseV = Number(wl2.noise);
@@ -318,13 +324,6 @@ function drawEllipse(c = -100, m = 20, q, col, ssid, noise, style, sshow) {
 	ctx.closePath();
 }
 
-function sortByProperty(array, property) {
-	array.sort(function(a, b) {
-		return b[property] - a[property];
-	});
-	return array;
-}
-
 sg.populate = function(style, sshow) {
 	var added = 0;
 	var removed = 0;
@@ -343,11 +342,11 @@ sg.populate = function(style, sshow) {
 	}
 
 	drawFT();
+	wlscandata.sort((b, a) => a[2] - b[2]);
 
 	for (i = 0; i < wlscandata.length; ++i) {
 		s = wlscandata[i];
 		e = null;
-		sortByProperty(entries, 'rssi');
 		for (j = 0; j < entries.length; ++j) {
 			if (entries[j].bssid == s[0]) {
 				e = entries[j];
@@ -371,6 +370,10 @@ sg.populate = function(style, sshow) {
 		e.channel = s[10];
 		e.channel = e.channel+'<br><small>'+s[9]+' GHz<\/small><br><small>'+s[4]+' MHz<\/small>';
 		e.rssi = s[2];
+		if (s[9] == 2.4)
+			e.snr = Number(e.rssi) + Math.abs(wl0.noise)
+		else
+			e.snr = Number(e.rssi) + Math.abs(wl1.noise)
 		e.mhz = s[4];
 		e.cap = s[7]+ '<br>'+s[8];
 		e.rates =s[6].replace('11', '');;
@@ -426,9 +429,9 @@ sg.populate = function(style, sshow) {
 				colo = '#aaaaaa';
 			else {
 				colo = colors[col2];
-				lim2++;
 				col2++;
 			}
+			lim2++;
 			var decimalColor = hexToDecimal(colo);
 			e.col = '<div style="margin:0 auto;display:block;padding:0px;width:20px;height:40px;background-color:rgba('+decimalColor+','+density+');border:1px solid black;"><\/div>';
 			drawEllipse(chan[0], e.mhz, (100 + e.rssi), colo, e.ssid, 0, style, sshow);
@@ -438,9 +441,9 @@ sg.populate = function(style, sshow) {
 				colo = '#aaaaaa';
 			else {
 				colo = colors[col5];
-				lim5++;
 				col5--;
 			}
+			lim5++;
 			var decimalColor = hexToDecimal(colo);
 			e.col = '<div style="margin:0 auto;display:block;padding:0px;width:20px;height:40px;background-color:rgba('+decimalColor+','+density+');border:1px solid black;"><\/div>';
 			drawEllipse(chan[0], e.mhz, (100 + e.rssi), colo, e.ssid, 0, style, sshow);
@@ -451,7 +454,7 @@ sg.populate = function(style, sshow) {
 		if (mac.match(/^(..):(..):(..)/))
 			mac = '<div style="display:none" id="gW_'+i+'">&nbsp; <img src="spin.gif" alt="" style="vertical-align:middle"><\/div><a href="javascript:searchOUI(\''+RegExp.$1+'-'+RegExp.$2+'-'+RegExp.$3+'\','+i+')" title="OUI Search">'+mac+'<\/a>';
 
-		sg.insert(-1, e, [ '<small>'+seen+'<\/small>', ''+e.col, ''+e.ssid, mac, (e.rssi < 0 ? e.rssi+'' : ''),
+		sg.insert(-1, e, [ '<small>'+seen+'<\/small>', ''+e.col, ''+e.ssid, mac, (e.rssi < 0 ? e.rssi+'' : ''), ''+e.snr,
 		          (e.qual < 0 ? '' : '<small>'+e.qual+'<\/small><br><img src="bar'+MIN(MAX(Math.floor(e.qual / 12), 1), 6)+'.gif" id="bar_'+i+'" alt="">'),
 		          ''+e.control+'/'+e.channel, '<small>'+e.cap, '<\/small>'+e.rates], false);
 	}
@@ -488,9 +491,12 @@ sg.sortCompare = function(a, b) {
 			r = cmpInt(da.rssi, db.rssi);
 		break;
 		case 5:
-			r = cmpInt(da.qual, db.qual);
+			r = cmpInt(da.snr, db.snr);
 		break;
 		case 6:
+			r = cmpInt(da.qual, db.qual);
+		break;
+		case 7:
 			r = cmpInt(da.channel, db.channel);
 		break;
 		default:
@@ -500,7 +506,7 @@ sg.sortCompare = function(a, b) {
 	if (r == 0)
 		r = cmpText(da.bssid, db.bssid);
 
-	return this.sortAscending ? r : -r;
+	return this.sortAscending ? -r : r;
 }
 
 Date.prototype.toWHMS = function() {
@@ -512,54 +518,75 @@ function setMsg(msg) {
 }
 
 function drawFT(show) {
+	var noiseMatch, ssidMatch, bssidMatch, rssiMatch, channelMatch, chanspecMatch;
+
 	if (typeof res0a === 'undefined')
 		return;
 
-	var noiseMatch = res0a.match(/noise: (-?\d+)/);
+	noiseMatch = res0a.match(/noise: (-?\d+)/);
 	wl0.noise = noiseMatch ? noiseMatch[1] : null;
-	var ssidMatch = res0a.match(/SSID: "([^"]+)"/);
+	ssidMatch = res0a.match(/SSID: "([^"]+)"/);
 	wl0.ssid = ssidMatch ? ssidMatch[1] : null;
-	var bssidMatch = res0a.match(/BSSID: (\S+)/);
+	bssidMatch = res0a.match(/BSSID: (\S+)/);
 	wl0.bssid = bssidMatch ? bssidMatch[1] : null;
-	var channelMatch = res0a.match(/Primary channel: (\d+)/);
+	if (wl0.mode.value === 'ap')
+		wl0.rssi = -10;
+	else {
+		rssiMatch = res0a.match(/RSSI:\s*(-?\d+)\s*dBm/);
+		wl0.rssi = rssiMatch ? parseInt(rssiMatch[1], 10) : null;
+	}
+	channelMatch = res0a.match(/Primary channel: (\d+)/);
 	wl0.controlchannel = channelMatch ? channelMatch[1] : null;
-	var chanspecMatch = res0a.match(/Chanspec: (\d+(?:\.\d+)?)GHz channel (\d+) (\d+)MHz/);
+	chanspecMatch = res0a.match(/Chanspec: (\d+(?:\.\d+)?)GHz channel (\d+) (\d+)MHz/);
 	wl0.centralchannel = chanspecMatch ? chanspecMatch[2] : null;
 	wl0.width = chanspecMatch ? chanspecMatch[3] : null;
-	var noiseMatch = res1a.match(/noise: (-?\d+)/);
+	noiseMatch = res1a.match(/noise: (-?\d+)/);
 	wl1.noise = noiseMatch ? noiseMatch[1] : null;
-	var ssidMatch = res1a.match(/SSID: "([^"]+)"/);
+	ssidMatch = res1a.match(/SSID: "([^"]+)"/);
 	wl1.ssid = ssidMatch ? ssidMatch[1] : null;
-	var bssidMatch = res1a.match(/BSSID: (\S+)/);
+	bssidMatch = res1a.match(/BSSID: (\S+)/);
 	wl1.bssid = bssidMatch ? bssidMatch[1] : null;
-	var channelMatch = res1a.match(/Primary channel: (\d+)/);
+	if (wl1.mode.value === 'ap')
+		wl1.rssi = -10;
+	else {
+		rssiMatch = res1a.match(/RSSI:\s*(-?\d+)\s*dBm/);
+		wl1.rssi = rssiMatch ? parseInt(rssiMatch[1], 10) : null;
+	}
+	channelMatch = res1a.match(/Primary channel: (\d+)/);
 	wl1.controlchannel = channelMatch ? channelMatch[1] : null;
-	var chanspecMatch = res1a.match(/Chanspec: (\d+(?:\.\d+)?)GHz channel (\d+) (\d+)MHz/);
+	chanspecMatch = res1a.match(/Chanspec: (\d+(?:\.\d+)?)GHz channel (\d+) (\d+)MHz/);
 	wl1.centralchannel = chanspecMatch ? chanspecMatch[2] : null;
 	wl1.width = chanspecMatch ? chanspecMatch[3] : null;
-	var noiseMatch = res2a.match(/noise: (-?\d+)/);
+	noiseMatch = res2a.match(/noise: (-?\d+)/);
 	wl2.noise = noiseMatch ? noiseMatch[1] : null;
-	var ssidMatch = res2a.match(/SSID: "([^"]+)"/);
+	ssidMatch = res2a.match(/SSID: "([^"]+)"/);
 	wl2.ssid = ssidMatch ? ssidMatch[1] : null;
-	var bssidMatch = res2a.match(/BSSID: (\S+)/);
+	bssidMatch = res2a.match(/BSSID: (\S+)/);
 	wl2.bssid = bssidMatch ? bssidMatch[1] : null;
-	var channelMatch = res2a.match(/Primary channel: (\d+)/);
+	wl2.bssid = bssidMatch ? bssidMatch[1] : null;
+	if (wl2.mode.value === 'ap')
+		wl2.rssi = -10;
+	else {
+		rssiMatch = res2a.match(/RSSI:\s*(-?\d+)\s*dBm/);
+		wl2.rssi = rssiMatch ? parseInt(rssiMatch[1], 10) : null;
+	}
+	channelMatch = res2a.match(/Primary channel: (\d+)/);
 	wl2.controlchannel = channelMatch ? channelMatch[1] : null;
-	var chanspecMatch = res2a.match(/Chanspec: (\d+(?:\.\d+)?)GHz channel (\d+) (\d+)MHz/);
+	chanspecMatch = res2a.match(/Chanspec: (\d+(?:\.\d+)?)GHz channel (\d+) (\d+)MHz/);
 	wl2.centralchannel = chanspecMatch ? chanspecMatch[2] : null;
 	wl2.width = chanspecMatch ? chanspecMatch[3] : null;
 	if (Number(wl0.radio.value) === 1) {
-		var internalWl0 = [ wl0.bssid, wl0.ssid, -10, wl0.controlchannel, wl0.width, 100, '', '', '', '2.4', wl0.centralchannel, 0 ];
+		var internalWl0 = [ wl0.bssid, wl0.ssid, wl0.rssi, wl0.controlchannel, wl0.width, 100, '', '', '', '2.4', wl0.centralchannel, 0 ];
 		if (wlscandata.find(obj => obj.bssid === wl0.bssid.value) == -1)
 			wlscandata.push(internalWl0);
 	}
 	if (Number(wl1.radio.value) === 1) {
-		var internalWl1 = [ wl1.bssid, wl1.ssid, -10, wl1.controlchannel, wl1.width, 100, '', '', '', '5', wl1.centralchannel, 0 ];
+		var internalWl1 = [ wl1.bssid, wl1.ssid, wl1.rssi, wl1.controlchannel, wl1.width, 100, '', '', '', '5', wl1.centralchannel, 0 ];
 		if (wlscandata.find(obj => obj.bssid === wl1.bssid.value) == -1)
 			wlscandata.push(internalWl1);
 	}
 	if (Number(wl2.radio.value) === 1) {
-		var internalWl2 = [ wl2.bssid, wl2.ssid, -10, wl2.controlchannel, wl2.width, 100, '', '', '', '5', wl2.centralchannel, 0 ];
+		var internalWl2 = [ wl2.bssid, wl2.ssid, wl2.rssi, wl2.controlchannel, wl2.width, 100, '', '', '', '5', wl2.centralchannel, 0 ];
 		if (wlscandata.find(obj => obj.bssid === wl2.bssid.value) == -1)
 			wlscandata.push(internalWl2);
 	}
@@ -643,8 +670,8 @@ function drawCoordinates(a, b, c, d, e, f, g) {
 			var yPos = (canvas.height / (vdiv * 10)) * (-y - 10);
 
 			ctx.textBaseline = 'middle';
-			ctx.fillText(y.toString(), 10, yPos);
-			ctx.fillText(y.toString(), hsize - 10, yPos);
+			ctx.fillText(y.toString(), 7, yPos);
+			ctx.fillText(y.toString(), hsize - 7, yPos);
 		}
 	}
 }
@@ -811,7 +838,10 @@ function init() {
 				</select>&nbsp;&nbsp;&nbsp;&nbsp;
 		</td><td>
 			<label for="ssid-limit">Limit SSIDs: </label>
-			<input type="number" id="ssid-limit" min="0" max="40" value="20" onchange="doit();">
+			<input type="number" id="ssid-limit" min="0" max="40" value="20" onchange="doit();">&nbsp;&nbsp;&nbsp;&nbsp;
+		</td>
+		</td><td>
+			<input type=button id="shuffle" value="🔀 Shuffle" onclick='recolor()'>
 		</td></tr>
 		</table>
 	</div>
@@ -834,7 +864,9 @@ function init() {
 			if ('<% wlclient(); %>' == '0')
 				document.write('<li><b>Warning:<\/b> Wireless connections to this router may be disrupted while using this tool.<br><\/li>');
 		</script>
+<!-- BCMARM-BEGIN -->
 		<li><b>Wireless Survey:</b> will not show any results with WL filter turned on in 'permit only' mode. </li>
+<!-- BCMARM-END -->
 		<li><b>Internal SSID:</b> a full page reload is needed if any of the internal SSID parameters (grey ellipse) ever change.</li>
 		<li><b>Protocols:</b> 802.11ac based FT routers may not accurately detect 160, 240, or 320 MHz channel widths used by 802.11ax (WiFi 6) and 802.11be (WiFi 7) routers. Conversely, 802.11ax-based FT routers may misinterpret 240 or 320 MHz widths in 802.11be routers as 160 MHz. Consider these limitations when assessing network configurations for compatibility and performance.</li>
 	</ul>
@@ -844,10 +876,11 @@ function init() {
 
 <div id="footer">
 	<div id="survey-controls">
+		Timeout:
 		<img src="spin.gif" alt="" id="refresh-spinner">
 		<script>
-			genStdTimeList('expire-time', 'Expires = ♾️', 6);
-			genStdTimeList('refresh-time', 'One off', 0);
+			genStdTimeList('expire-time', 'Never = ♾️', 10);
+			genStdTimeList('refresh-time', 'One off', 10);
 		</script>
 		<input type="button" value="Refresh" onclick="ref.toggle()" id="refresh-button">
 	</div>
