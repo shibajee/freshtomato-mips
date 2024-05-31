@@ -268,6 +268,11 @@ ifneq ($(CONFIG_BCMWL6),y)
 	sed -i $(INSTALLDIR)/www/status-overview.asp -e "/BCMWL6-BEGIN/,/BCMWL6-END/d"
 endif
 
+ifneq ($(TCONFIG_BCM714),y)
+	sed -i $(INSTALLDIR)/www/advanced-wireless.asp -e "/BCMWL714-BEGIN/,/BCMWL714-END/d"
+	sed -i $(INSTALLDIR)/www/admin-debug.asp -e "/BCMWL714-BEGIN/,/BCMWL714-END/d"
+endif
+
 # Only include the roaming assistant option if is compiled in
 ifneq ($(TCONFIG_ROAM),y)
 	sed -i $(INSTALLDIR)/www/advanced-wireless.asp -e "/ROAM-BEGIN/,/ROAM-END/d"
@@ -469,7 +474,9 @@ endif
 # Only include the QR Code page if it is compiled in
 ifneq ($(TCONFIG_QRCODE),y)
 	rm -f $(INSTALLDIR)/www/tools-qr.asp
+ifneq ($(TCONFIG_WIREGUARD),y)
 	rm -f $(INSTALLDIR)/www/html5-qrcode.js
+endif
 	rm -f $(INSTALLDIR)/www/qrcode.js
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/QRCODE-BEGIN/,/QRCODE-END/d"
 	sed -i $(INSTALLDIR)/www/status-overview.asp -e "/QRCODE-BEGIN/,/QRCODE-END/d"
@@ -508,9 +515,11 @@ endif
 ifneq ($(TCONFIG_WIREGUARD),y)
 	rm -f $(INSTALLDIR)/www/vpn-wireguard.asp
 	rm -f $(INSTALLDIR)/www/cfg-icon.svg
-	rm -f $(INSTALLDIR)/www/html5-qrcode.js
-#	rm -f $(INSTALLDIR)/www/interfaces-v6.js
 	rm -f $(INSTALLDIR)/www/qr-icon.svg
+ifneq ($(TCONFIG_QRCODE),y)
+	rm -f $(INSTALLDIR)/www/html5-qrcode.js
+endif
+#	rm -f $(INSTALLDIR)/www/interfaces-v6.js
 	rm -f $(INSTALLDIR)/www/wireguard.js
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/WIREGUARD-BEGIN/,/WIREGUARD-END/d"
 endif
@@ -546,6 +555,7 @@ endif
 		-e "/BCMNAT-BEGIN/d"	-e "/BCMNAT-END/d" \
 		-e "/BCMWL6-BEGIN/d"	-e "/BCMWL6-END/d" \
 		-e "/NO-BCMWL6-BEGIN/d"	-e "/NO-BCMWL6-END/d" \
+		-e "/BCMWL714-BEGIN/d"	-e "/BCMWL714-END/d" \
 		-e "/ROAM-BEGIN/d"	-e "/ROAM-END/d" \
 		-e "/BBT-BEGIN/d"	-e "/BBT-END/d" \
 		-e "/BT-BEGIN/d"	-e "/BT-END/d" \
