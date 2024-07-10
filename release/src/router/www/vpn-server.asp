@@ -14,11 +14,11 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8">
 <meta name="robots" content="noindex,nofollow">
 <title>[<% ident(); %>] OpenVPN: Server</title>
-<link rel="stylesheet" type="text/css" href="tomato.css">
+<link rel="stylesheet" type="text/css" href="tomato.css?rel=<% version(); %>">
 <% css(); %>
-<script src="isup.jsz"></script>
-<script src="tomato.js"></script>
-<script src="vpn.js"></script>
+<script src="isup.jsz?rel=<% version(); %>"></script>
+<script src="tomato.js?rel=<% version(); %>"></script>
+<script src="vpn.js?rel=<% version(); %>"></script>
 
 <script>
 
@@ -50,8 +50,9 @@ for (i = 0; i < tabs.length; ++i) {
 	usersTables[i].servername = tabs[i][0];
 	statusUpdaters.push(new StatusUpdater());
 }
-
+/* KEYGEN-BEGIN */
 var vpnciphers = vpnciphers.concat(['CAMELLIA-128-CBC'],['CAMELLIA-192-CBC'],['CAMELLIA-256-CBC']);
+/* KEYGEN-END */
 var ciphers = [['default','Use Default'],['none','None']];
 for (i = 0; i < vpnciphers.length; ++i)
 	ciphers.push([vpnciphers[i],vpnciphers[i]]);
@@ -614,11 +615,11 @@ function verifyFields(focused, quiet) {
 	for (i = 0; i < tabs.length; ++i) {
 		t = tabs[i][0];
 
-/* SIZEOPTMORE0-BEGIN */
+/* SIZEOPTMORE-NO-BEGIN */
 		if (E('_vpn_'+t+'_crypt').value == 'tls')
 			E('_vpn_'+t+'_crypt').value = 'secret';
 		E('_vpn_'+t+'_crypt').options[0].disabled = 1;
-/* SIZEOPTMORE0-END */
+/* SIZEOPTMORE-NO-END */
 		var auth = E('_vpn_'+t+'_crypt').value;
 		var iface = E('_vpn_'+t+'_if').value;
 		var hmac = E('_vpn_'+t+'_hmac').value;
@@ -925,7 +926,7 @@ function init() {
 				{ title: 'Advertise DNS to clients', name: 'f_vpn_'+t+'_pdns', type: 'checkbox', value: nvram['vpn_'+t+'_pdns'] != 0 },
 				{ title: 'Data ciphers', name: 'vpn_'+t+'_ncp_ciphers', type: 'text', size: 70, maxlen: 127, value: nvram['vpn_'+t+'_ncp_ciphers'] },
 				{ title: 'Cipher', name: 'vpn_'+t+'_cipher', type: 'select', options: ciphers, value: nvram['vpn_'+t+'_cipher'] },
-				{ title: 'Compression', name: 'vpn_'+t+'_comp', type: 'select', options: [['-1','Disabled'],['no','None'],['yes','LZO'],['adaptive','LZO Adaptive']
+				{ title: 'Compression', name: 'vpn_'+t+'_comp', type: 'select', options: [['-1','Disabled'],['no','None']
 /* SIZEOPTMORE-BEGIN */
 				         ,['lz4','LZ4'],['lz4-v2','LZ4-V2']
 /* SIZEOPTMORE-END */
